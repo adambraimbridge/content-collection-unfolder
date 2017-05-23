@@ -15,6 +15,7 @@ type healthService struct {
 type healthConfig struct {
 	appSystemCode string
 	appName       string
+	appDesc       string
 	port          string
 }
 
@@ -24,6 +25,15 @@ func newHealthService(config *healthConfig) *healthService {
 		service.sampleCheck(),
 	}
 	return service
+}
+
+func (service *healthService) buildHealthCheck() health.HealthCheck {
+	return health.HealthCheck{
+		SystemCode:  service.config.appSystemCode,
+		Name:        service.config.appName,
+		Description: service.config.appDesc,
+		Checks:      service.checks,
+	}
 }
 
 func (service *healthService) sampleCheck() health.Check {
