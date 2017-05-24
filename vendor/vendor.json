@@ -27,6 +27,18 @@
 			"revisionTime": "2016-03-23T11:15:42Z"
 		},
 		{
+			"checksumSHA1": "+sjiZBzrsk91W1A3Md1azCkZadg=",
+			"path": "github.com/Financial-Times/transactionid-utils-go",
+			"revision": "df2f00c734957c9dd651ce23ab0e0902504c7636",
+			"revisionTime": "2017-03-28T16:39:54Z"
+		},
+		{
+			"checksumSHA1": "OctXH9nxfVzFlVWD7h4K5e+x5/M=",
+			"path": "github.com/Financial-Times/uuid-utils-go",
+			"revision": "e22658edd0f130936e99079bf844bde7087c914c",
+			"revisionTime": "2017-05-16T11:04:27Z"
+		},
+		{
 			"checksumSHA1": "ZKxETlJdB2XubMrZnXB0FQimVA8=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "10f801ebc38b33738c9d17d50860f484a0988ff5",
@@ -55,6 +67,18 @@
 			"path": "github.com/jawher/mow.cli",
 			"revision": "d3ffbc2f98b83e09dc8efd55ecec75eb5fd656ec",
 			"revisionTime": "2017-02-20T22:51:54Z"
+		},
+		{
+			"checksumSHA1": "YPUzwYX7ji8jMLe7QAPjFwG9lTU=",
+			"path": "github.com/willf/bitset",
+			"revision": "5c3c0fce48842b2c0bbaa99b4e61b0175d84b47c",
+			"revisionTime": "2016-12-02T17:00:36Z"
+		},
+		{
+			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
+			"path": "golang.org/x/net/context",
+			"revision": "d1e1b351919c6738fdeb9893d5c998b161464f0c",
+			"revisionTime": "2016-12-29T22:47:41Z"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/content-collection-unfolder"

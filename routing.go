@@ -41,6 +41,6 @@ func (r *routing) routProdEndpoints() {
 func (r *routing) listenAndServe(port string) {
 	err := http.ListenAndServe(":"+port, r.router)
 	if err != nil {
-		log.Fatalf("Error encountered during ListenAndServe: %v", err)
+		log.Fatalf("Error during ListenAndServe: %v\n", err)
 	}
 }
