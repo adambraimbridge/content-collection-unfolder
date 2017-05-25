@@ -16,35 +16,16 @@ const appDescription = "UPP Service that forwards mapped content collections to 
 func main() {
 	app := cli.App("content-collection-unfolder", appDescription)
 
-	appSystemCode := app.String(cli.StringOpt{
-		Name:   "app-system-code",
-		Value:  "content-collection-unfolder",
-		Desc:   "System Code of the application",
-		EnvVar: "APP_SYSTEM_CODE",
-	})
-
-	appName := app.String(cli.StringOpt{
-		Name:   "app-name",
-		Value:  "Content Collection Unfolder",
-		Desc:   "Application name",
-		EnvVar: "APP_NAME",
-	})
-
-	port := app.String(cli.StringOpt{
-		Name:   "port",
-		Value:  "8080",
-		Desc:   "Port to listen on",
-		EnvVar: "APP_PORT",
-	})
-
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] content-collection-unfolder is starting ")
 
+	sc := createServiceConfiguration(app)
+
 	app.Action = func() {
-		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
+		log.Infof("System code: %s, App Name: %s, Port: %s", sc.appSystemCode, sc.appName, sc.appPort)
 
 		go func() {
-			serveAdminEndpoints(*appSystemCode, *appName, *port)
+			serveAdminEndpoints(sc.appSystemCode, sc.appName, sc.appPort)
 		}()
 
 		// todo: insert app code here
@@ -67,6 +48,7 @@ func serveAdminEndpoints(appSystemCode string, appName string, port string) {
 	serveMux.HandleFunc(healthPath, health.Handler(hc))
 	serveMux.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
 	serveMux.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	serveMux.HandleFunc(status.PingPath, status.PingHandler)
 
 	if err := http.ListenAndServe(":"+port, serveMux); err != nil {
 		log.Fatalf("Unable to start: %v", err)
