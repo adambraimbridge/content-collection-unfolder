@@ -10,7 +10,6 @@ type serviceConfig struct {
 	appPort                      string
 	contentResolverAppURI        string
 	contentResolverAppHealthURI  string
-	contentResolverAppPanicGuide string
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {
@@ -49,13 +48,6 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		EnvVar: "CONTENT_RESOLVER_APP_HEALTH_URI",
 	})
 
-	contentResolverAppPanicGuide := app.String(cli.StringOpt{
-		Name:   "content-resolver-app-panic-guide",
-		Value:  "https://dewey.ft.com/document-store-api.html",
-		Desc:   "Content Resolver APP panic guide url. Default panic guide is for Document Store API.",
-		EnvVar: "CONTENT_RESOLVER_APP_PANIC_GUIDE",
-	})
-
 	return &serviceConfig{appSystemCode: *appSystemCode, appName: *appName, appPort: *appPort, contentResolverAppURI: *contentResolverAppURI,
-		contentResolverAppHealthURI: *contentResolverAppHealthURI, contentResolverAppPanicGuide: *contentResolverAppPanicGuide}
+		contentResolverAppHealthURI: *contentResolverAppHealthURI}
 }
