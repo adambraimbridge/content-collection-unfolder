@@ -5,11 +5,11 @@ import (
 )
 
 type serviceConfig struct {
-	appSystemCode                string
-	appName                      string
-	appPort                      string
-	contentResolverAppURI        string
-	contentResolverAppHealthURI  string
+	appSystemCode               string
+	appName                     string
+	appPort                     string
+	contentResolverAppURI       string
+	contentResolverAppHealthURI string
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {

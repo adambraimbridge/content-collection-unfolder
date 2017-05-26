@@ -1,24 +1,24 @@
 package resolver
 
 import (
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	"github.com/Financial-Times/transactionid-utils-go"
 	"fmt"
+	"github.com/Financial-Times/transactionid-utils-go"
+	"io/ioutil"
+	"net/http"
 	"regexp"
 )
 
 var serviceNameRegex = regexp.MustCompile("__(.*?)/")
 
 type contentResolver struct {
-	contentResolverAppURI string
+	contentResolverAppURI  string
 	contentResolverAppName string
-	httpClient    *http.Client
+	httpClient             *http.Client
 }
 
 func NewContentResolver(contentResolverAppURI string) *contentResolver {
-	return &contentResolver{contentResolverAppURI: contentResolverAppURI, contentResolverAppName: serviceNameRegex.FindStringSubmatch(contentResolverAppURI)[1], httpClient:  http.DefaultClient}
+	return &contentResolver{contentResolverAppURI: contentResolverAppURI, contentResolverAppName: serviceNameRegex.FindStringSubmatch(contentResolverAppURI)[1], httpClient: http.DefaultClient}
 }
 
 func (cr *contentResolver) ResolveContents(uuids []string, tid string) ([]map[string]interface{}, error) {

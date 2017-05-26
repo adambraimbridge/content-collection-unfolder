@@ -1,13 +1,13 @@
 package resolver
 
 import (
-	"github.com/gorilla/mux"
 	"github.com/gorilla/handlers"
-	"net/http/httptest"
-	"net/http"
-	"os"
+	"github.com/gorilla/mux"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"os"
 )
 
 var contentResolverAppMock *httptest.Server
