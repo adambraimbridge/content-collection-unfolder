@@ -2,6 +2,7 @@ package producer
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
@@ -11,7 +12,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
-	"errors"
 )
 
 const timeFormat = "2006-01-02T03:04:05.000Z0700"
@@ -86,7 +86,7 @@ func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 
 	cp.Send(tidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{} {{}, {"uuid" : 123}, {"uuid" : "1234"}})
+		[]map[string]interface{}{{}, {"uuid": 123}, {"uuid": "1234"}})
 
 	mp.AssertNotCalled(t, "SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message"))
 }
@@ -115,7 +115,7 @@ func TestMarshallErrorsCauseSkip(t *testing.T) {
 
 	cp.Send(tidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{} {{"uuid" : gouuid.NewV4().String(), "dude, what?" : func() {}}})
+		[]map[string]interface{}{{"uuid": gouuid.NewV4().String(), "dude, what?": func() {}}})
 
 	mp.AssertNotCalled(t, "SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message"))
 }
