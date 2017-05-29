@@ -1,12 +1,12 @@
 package producer
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/uuid-utils-go"
-	gouuid "github.com/satori/go.uuid"
 	log "github.com/Sirupsen/logrus"
-	"encoding/json"
+	gouuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -36,7 +36,7 @@ func (p ContentProducer) Send(tid string, lastModified string, contentArr []map[
 func (p ContentProducer) sendSingleMessage(tid string, content map[string]interface{}, lastModified string) {
 	logEntry := log.WithField("tid", tid)
 	uuid, err := p.extractUuid(content)
-	if nil != nil {
+	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v ", err)
 	}
 
@@ -113,4 +113,3 @@ type publicationMessageBody struct {
 	LastModified string                 `json:"lastModified"`
 	Payload      map[string]interface{} `json:"payload"`
 }
-
