@@ -14,9 +14,6 @@ const (
 	cmsContentPublished = "cms-content-published"
 	methodeSystemOrigin = "http://cmdb.ft.com/systems/methode-web-pub"
 
-	//time format (also not needed atm)
-	//timeFormat = "2006-01-02T03:04:05.000Z0700"
-
 	//mapper uri bases (not needed)
 	//articleUriBase = "http://methode-article-mapper.svc.ft.com/content/"
 	//placeholderUriBase = "http://methode-content-placeholder-mapper-iw-uk-p.svc.ft.com/content/"
@@ -33,22 +30,25 @@ func (p ContentProducer) Send(tid string, lastModified string, contentArr []map[
 		p.sendSingleMessage(tid, content, lastModified)
 	}
 }
+
 func (p ContentProducer) sendSingleMessage(tid string, content map[string]interface{}, lastModified string) {
 	logEntry := log.WithField("tid", tid)
 	uuid, err := p.extractUuid(content)
 	if err != nil {
-		logEntry.Warnf("Skip creation of kafka message. Reason: %v ", err)
+		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
+		return
 	}
 
 	logEntry = logEntry.WithField("uuid", uuid)
 	msg, err := p.buildMessage(tid, uuid, lastModified, content)
 	if err != nil {
-		logEntry.Warnf("Skip creation of kafka message. Reason: %v ", err)
+		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
+		return
 	}
 
-	err = p.msgProducer.SendMessage("", msg)
+	err = p.msgProducer.SendMessage("", *msg)
 	if err != nil {
-		logEntry.Warnf("Unable to send message to Kafka. Reason: %v ", err)
+		logEntry.Warnf("Unable to send message to Kafka. Reason: %v", err)
 	}
 }
 
@@ -71,7 +71,7 @@ func (p ContentProducer) extractUuid(content map[string]interface{}) (string, er
 	return uuid, nil
 }
 
-func (p ContentProducer) buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (producer.Message, error) {
+func (p ContentProducer) buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
 	body := publicationMessageBody{
 		ContentURI:   uriBase + uuid,
 		LastModified: lastModified,
@@ -91,7 +91,7 @@ func (p ContentProducer) buildMessage(tid string, uuid string, lastModified stri
 		"Content-Type":      "application/json",
 	}
 
-	return producer.Message{Headers: headers, Body: *bodyAsString}, nil
+	return &producer.Message{Headers: headers, Body: *bodyAsString}, nil
 
 }
 
@@ -105,7 +105,8 @@ func (p ContentProducer) marshallToString(body *publicationMessageBody) (*string
 	//binary = bytes.Replace(binary, []byte("\\u003c"), []byte("<"), -1)
 	//binary = bytes.Replace(binary, []byte("\\u003e"), []byte(">"), -1)
 
-	return &string(binary), nil
+	binaryStr := string(binary)
+	return &binaryStr, nil
 }
 
 type publicationMessageBody struct {
