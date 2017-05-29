@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
-	tidUtil "github.com/Financial-Times/transactionid-utils-go"
-	uuidUtil "github.com/Financial-Times/uuid-utils-go"
+	tidutils "github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"io/ioutil"
@@ -26,7 +26,7 @@ func newUnfolder(forwarder *fw.Forwarder) *unfolder {
 }
 
 func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
-	tid := tidUtil.GetTransactionIDFromRequest(req)
+	tid := tidutils.GetTransactionIDFromRequest(req)
 	uuid, collectionType := u.extractPathVariables(req)
 
 	logEntry := log.WithFields(log.Fields{
@@ -35,10 +35,10 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		"collectionType": collectionType,
 	})
 
-	writer.Header().Add(tidUtil.TransactionIDHeader, tid)
+	writer.Header().Add(tidutils.TransactionIDHeader, tid)
 	writer.Header().Add("Content-Type", "application/json;charset=utf-8")
 
-	if err := uuidUtil.ValidateUUID(uuid); err != nil {
+	if err := uuidutils.ValidateUUID(uuid); err != nil {
 		logEntry.Errorf("Invalid uuid in request path: %v", err)
 		u.writeError(writer, http.StatusBadRequest, err)
 		return
