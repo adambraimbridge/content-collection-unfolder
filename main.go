@@ -75,8 +75,7 @@ func main() {
 	}
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Errorf("App could not start, error=[%v]\n", err)
-		return
+		log.Fatalf("App could not start, error=[%v]\n", err)
 	}
 }
 
