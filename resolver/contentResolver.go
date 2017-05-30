@@ -8,16 +8,20 @@ import (
 	"net/http"
 )
 
-type contentResolver struct {
+type ContentResolver interface {
+	ResolveContents(uuids []string, tid string) ([]map[string]interface{}, error)
+}
+
+type defaultContentResolver struct {
 	contentResolverAppURI string
 	httpClient            *http.Client
 }
 
-func NewContentResolver(contentResolverAppURI string) *contentResolver {
-	return &contentResolver{contentResolverAppURI: contentResolverAppURI, httpClient: http.DefaultClient}
+func NewDefaultContentResolver(client *http.Client, contentResolverAppURI string) ContentResolver {
+	return &defaultContentResolver{contentResolverAppURI: contentResolverAppURI, httpClient: client}
 }
 
-func (cr *contentResolver) ResolveContents(uuids []string, tid string) ([]map[string]interface{}, error) {
+func (cr *defaultContentResolver) ResolveContents(uuids []string, tid string) ([]map[string]interface{}, error) {
 	resp, err := cr.callContentResolverApp(uuids, tid)
 	if err != nil {
 		return nil, fmt.Errorf("Error calling on url [%v] for content, error was: [%v]", cr.contentResolverAppURI, err.Error())
@@ -34,7 +38,7 @@ func (cr *contentResolver) ResolveContents(uuids []string, tid string) ([]map[st
 	}
 
 	var contents []map[string]interface{}
-	err = json.Unmarshal(bodyAsBytes, contents)
+	err = json.Unmarshal(bodyAsBytes, &contents)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read response body from call to [%v], transaction_id=[%v], error was: [%v]", cr.contentResolverAppURI, tid, err.Error())
 	}
@@ -42,7 +46,7 @@ func (cr *contentResolver) ResolveContents(uuids []string, tid string) ([]map[st
 	return contents, nil
 }
 
-func (cr *contentResolver) callContentResolverApp(uuids []string, tid string) (*http.Response, error) {
+func (cr *defaultContentResolver) callContentResolverApp(uuids []string, tid string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, cr.contentResolverAppURI, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating request to uri=[%v], transaction_id=[%v].", cr.contentResolverAppURI, tid)
