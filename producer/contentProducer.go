@@ -13,12 +13,6 @@ const (
 	uriBase             = "http://content-collection-unfolder.svc.ft.com/content/"
 	cmsContentPublished = "cms-content-published"
 	methodeSystemOrigin = "http://cmdb.ft.com/systems/methode-web-pub"
-
-	//mapper uri bases (not needed)
-	//articleUriBase = "http://methode-article-mapper.svc.ft.com/content/"
-	//placeholderUriBase = "http://methode-content-placeholder-mapper-iw-uk-p.svc.ft.com/content/"
-	//videoUriBase = "http://next-video-mapper.svc.ft.com/video/model/"
-
 )
 
 type ContentProducer struct {

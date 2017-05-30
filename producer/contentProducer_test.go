@@ -8,7 +8,6 @@ import (
 	"github.com/Financial-Times/uuid-utils-go"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	_ "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
