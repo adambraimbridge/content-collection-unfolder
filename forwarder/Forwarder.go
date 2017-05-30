@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-type Forwarder struct {
-	client    *http.Client
-	writerUri string
+type Forwarder interface {
+	Forward(tid string, uuid string, collectionType string, reqBody []byte) (*ForwarderResponse, error)
 }
 
 type ForwarderResponse struct {
@@ -19,14 +18,19 @@ type ForwarderResponse struct {
 	ResponseBody []byte
 }
 
-func NewForwarder(client *http.Client, writerUri string) *Forwarder {
-	return &Forwarder{
+type defaultForwarder struct {
+	client    *http.Client
+	writerUri string
+}
+
+func NewForwarder(client *http.Client, writerUri string) Forwarder {
+	return &defaultForwarder{
 		client:    client,
 		writerUri: strings.TrimSuffix(writerUri, "/"),
 	}
 }
 
-func (f *Forwarder) Forward(tid string, uuid string, collectionType string, reqBody []byte) (*ForwarderResponse, error) {
+func (f *defaultForwarder) Forward(tid string, uuid string, collectionType string, reqBody []byte) (*ForwarderResponse, error) {
 	req, err := http.NewRequest(http.MethodPut, f.buildUrl(collectionType, uuid), bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, err
@@ -48,6 +52,6 @@ func (f *Forwarder) Forward(tid string, uuid string, collectionType string, reqB
 	return &ForwarderResponse{resp.StatusCode, respBody}, nil
 }
 
-func (f *Forwarder) buildUrl(collectionType string, uuid string) string {
+func (f *defaultForwarder) buildUrl(collectionType string, uuid string) string {
 	return fmt.Sprintf("%s/%s/%s", f.writerUri, collectionType, uuid)
 }

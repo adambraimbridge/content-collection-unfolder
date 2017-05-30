@@ -16,10 +16,10 @@ const (
 )
 
 type unfolder struct {
-	forwarder *fw.Forwarder
+	forwarder fw.Forwarder
 }
 
-func newUnfolder(forwarder *fw.Forwarder) *unfolder {
+func newUnfolder(forwarder fw.Forwarder) *unfolder {
 	return &unfolder{
 		forwarder: forwarder,
 	}
