@@ -86,7 +86,7 @@ func Test_callContentResolverApp_Empty_Content(t *testing.T) {
 		assert.FailNow(t, "Failed retrieving contents.", err.Error())
 	}
 
-	assert.Equal(t, 0, len(contents), "There should be 2 contents retrieved.")
+	assert.Equal(t, 0, len(contents), "There should be no contents retrieved.")
 }
 
 func Test_callContentResolverApp_NotWorking(t *testing.T) {
