@@ -19,7 +19,7 @@ func TestHeadersAndBodyAreOk(t *testing.T) {
 	mp := new(MockProducer)
 	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Return(nil)
 
-	cp := ContentProducer{mp}
+	cp := NewContentProducer(mp)
 
 	tid := tidutils.NewTransactionID()
 	lastModified := time.Now().Format(timeFormat)
@@ -66,7 +66,7 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 		}),
 	).Times(2).Return(nil)
 
-	cp := ContentProducer{mp}
+	cp := NewContentProducer(mp)
 
 	cp.Send(tidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
@@ -81,7 +81,7 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 	mp := new(MockProducer)
 
-	cp := ContentProducer{mp}
+	cp := NewContentProducer(mp)
 
 	cp.Send(tidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
@@ -94,7 +94,7 @@ func TestSendFailureDoesNotStopProducer(t *testing.T) {
 	mp := new(MockProducer)
 	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Times(4).Return(errors.New("Test error"))
 
-	cp := ContentProducer{mp}
+	cp := NewContentProducer(mp)
 
 	contentArr := []map[string]interface{}{{"uuid": gouuid.NewV4().String()}, {"uuid": gouuid.NewV4().String()}}
 	cp.Send(tidutils.NewTransactionID(),
@@ -110,7 +110,7 @@ func TestSendFailureDoesNotStopProducer(t *testing.T) {
 func TestMarshallErrorsCauseSkip(t *testing.T) {
 	mp := new(MockProducer)
 
-	cp := ContentProducer{mp}
+	cp := NewContentProducer(mp)
 
 	cp.Send(tidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),

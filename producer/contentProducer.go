@@ -15,17 +15,27 @@ const (
 	methodeSystemOrigin = "http://cmdb.ft.com/systems/methode-web-pub"
 )
 
-type ContentProducer struct {
+type ContentProducer interface {
+	Send(tid string, lastModified string, contentArr []map[string]interface{})
+}
+
+type defaultContentProducer struct {
 	msgProducer producer.MessageProducer
 }
 
-func (p ContentProducer) Send(tid string, lastModified string, contentArr []map[string]interface{}) {
+func NewContentProducer(msgProducer producer.MessageProducer) ContentProducer {
+	return &defaultContentProducer{
+		msgProducer: msgProducer,
+	}
+}
+
+func (p *defaultContentProducer) Send(tid string, lastModified string, contentArr []map[string]interface{}) {
 	for _, content := range contentArr {
 		p.sendSingleMessage(tid, content, lastModified)
 	}
 }
 
-func (p ContentProducer) sendSingleMessage(tid string, content map[string]interface{}, lastModified string) {
+func (p *defaultContentProducer) sendSingleMessage(tid string, content map[string]interface{}, lastModified string) {
 	logEntry := log.WithField("tid", tid)
 	uuid, err := p.extractUuid(content)
 	if err != nil {
@@ -46,7 +56,7 @@ func (p ContentProducer) sendSingleMessage(tid string, content map[string]interf
 	}
 }
 
-func (p ContentProducer) extractUuid(content map[string]interface{}) (string, error) {
+func (p *defaultContentProducer) extractUuid(content map[string]interface{}) (string, error) {
 	val, ok := content["uuid"]
 	if !ok {
 		return "", errors.New("No UUID found in content")
@@ -65,7 +75,7 @@ func (p ContentProducer) extractUuid(content map[string]interface{}) (string, er
 	return uuid, nil
 }
 
-func (p ContentProducer) buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
+func (p *defaultContentProducer) buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
 	body := publicationMessageBody{
 		ContentURI:   uriBase + uuid,
 		LastModified: lastModified,
@@ -89,7 +99,7 @@ func (p ContentProducer) buildMessage(tid string, uuid string, lastModified stri
 
 }
 
-func (p ContentProducer) marshallToString(body *publicationMessageBody) (*string, error) {
+func (p *defaultContentProducer) marshallToString(body *publicationMessageBody) (*string, error) {
 	binary, err := json.Marshal(*body)
 	if err != nil {
 		return nil, err
