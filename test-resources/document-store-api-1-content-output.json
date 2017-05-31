@@ -1,0 +1,33 @@
+[
+  {
+    "uuid": "ab43b1a6-1f47-11e7-b7d3-163f5a7f229c",
+    "title": "Tesco reports first sales growth in 7 years",
+    "identifiers": [
+      {
+        "authority": "http://api.ft.com/system/FTCOM-METHODE",
+        "identifierValue": "ab43b1a6-1f47-11e7-b7d3-163f5a7f229c"
+      }
+    ],
+    "brands": [
+      {
+        "id": "http://api.ft.com/things/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"
+      }
+    ],
+    "alternativeTitles": {
+      "promotionalTitle": "Tesco reports first sales growth in 7 years"
+    },
+    "alternativeImages": {
+      "promotionalImage": "d148983a-13b7-11e7-b0c1-37e417ee6c76"
+    },
+    "alternativeStandfirsts": {
+      "promotionalStandfirst": "Profits dragged down by record payment related to historic accounting scandal"
+    },
+    "publishedDate": "2017-04-12T06:38:52.000Z",
+    "publishReference": "republish_-2a2cef92-deba-4c9a-9d6f-6e495051dda9",
+    "lastModified": "2017-04-12T16:22:35.530Z",
+    "webUrl": "http://www.ft.com/fastft/2017/04/12/tesco-reports-first-sales-growth-in-7-years/",
+    "type": "Content",
+    "canBeSyndicated": "verify",
+    "canBeDistributed": "verify"
+  }
+]
