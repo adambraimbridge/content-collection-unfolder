@@ -17,7 +17,7 @@ type defaultContentResolver struct {
 	httpClient            *http.Client
 }
 
-func NewDefaultContentResolver(client *http.Client, contentResolverAppURI string) ContentResolver {
+func NewContentResolver(client *http.Client, contentResolverAppURI string) ContentResolver {
 	return &defaultContentResolver{contentResolverAppURI: contentResolverAppURI, httpClient: client}
 }
 

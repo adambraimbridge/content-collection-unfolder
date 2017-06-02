@@ -2,6 +2,8 @@ package main
 
 import (
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
+	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	res "github.com/Financial-Times/content-collection-unfolder/resolver"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
@@ -20,7 +22,7 @@ func main() {
 	log.SetLevel(log.InfoLevel)
 
 	app.Action = func() {
-		log.Infof("[Startup] content-collection-unfolder is starting with service hc %s", sc.toMap())
+		log.Infof("[Startup] content-collection-unfolder is starting with service config %v", sc.toMap())
 
 		client := setupHttpClient()
 		producer := setupMessageProducer(sc, client)
@@ -39,6 +41,9 @@ func main() {
 		newRouting(
 			newUnfolder(
 				fw.NewForwarder(client, *sc.writerURI),
+				res.NewUuidResolver(),
+				res.NewContentResolver(client, *sc.contentResolverURI),
+				prod.NewContentProducer(producer),
 			),
 			newHealthService(hc),
 		).listenAndServe(*sc.appPort)

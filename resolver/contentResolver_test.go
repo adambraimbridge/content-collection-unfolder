@@ -50,7 +50,7 @@ func mockDSAPI(appStatus string, outputFileName string) {
 	router.Path("/content").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(contentResolverEndpointHandler)})
 	dsAPIMock = httptest.NewServer(router)
 
-	contentResolver = NewDefaultContentResolver(http.DefaultClient, dsAPIMock.URL+"/content")
+	contentResolver = NewContentResolver(http.DefaultClient, dsAPIMock.URL+"/content")
 }
 
 func Test_callContentResolverApp_1_Content(t *testing.T) {

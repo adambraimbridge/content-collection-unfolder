@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
+	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	res "github.com/Financial-Times/content-collection-unfolder/resolver"
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
@@ -16,12 +18,18 @@ const (
 )
 
 type unfolder struct {
-	forwarder fw.Forwarder
+	forwarder       fw.Forwarder
+	uuidsAndDateRes res.UuidsAndDateResolver
+	contentRes      res.ContentResolver
+	producer        prod.ContentProducer
 }
 
-func newUnfolder(forwarder fw.Forwarder) *unfolder {
+func newUnfolder(forwarder fw.Forwarder, uuidsAndDateRes res.UuidsAndDateResolver, contentRes res.ContentResolver, producer prod.ContentProducer) *unfolder {
 	return &unfolder{
-		forwarder: forwarder,
+		forwarder:       forwarder,
+		uuidsAndDateRes: uuidsAndDateRes,
+		contentRes:      contentRes,
+		producer:        producer,
 	}
 }
 
@@ -66,9 +74,21 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//resolve uuid
+	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body, fwResp.ResponseBody)
+	if err != nil {
+		logEntry.Errorf("Error while resolving UUIDs: %v", err)
+		u.writeError(writer, http.StatusBadRequest, err)
+		return
+	}
 
-	//produce messages
+	contentArr, err := u.contentRes.ResolveContents(uuidsAndDate.UuidArr, tid)
+	if err != nil {
+		logEntry.Errorf("Error while resolving Contents: %v", err)
+		u.writeError(writer, http.StatusInternalServerError, err)
+		return
+	}
+
+	u.producer.Send(tid, uuidsAndDate.LastModified, contentArr)
 }
 
 func (u *unfolder) extractPathVariables(req *http.Request) (string, string) {
