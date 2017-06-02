@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/service-status-go/gtg"
 	"net/http"
 )
@@ -16,18 +17,22 @@ type healthService struct {
 }
 
 type healthConfig struct {
-	client          *http.Client
-	appSystemCode   string
-	appName         string
-	appDesc         string
-	port            string
-	writerHealthUri string
+	appDesc                  string
+	appSystemCode            string
+	appName                  string
+	port                     string
+	writerHealthURI          string
+	contentResolverHealthURI string
+	producer                 producer.MessageProducer
+	client                   *http.Client
 }
 
 func newHealthService(config *healthConfig) *healthService {
 	service := &healthService{config: config}
 	service.checks = []health.Check{
 		service.writerCheck(),
+		service.contentResolverCheck(),
+		service.producerCheck(),
 	}
 	return service
 }
@@ -43,13 +48,39 @@ func (service *healthService) buildHealthCheck() health.HealthCheck {
 
 func (service *healthService) writerCheck() health.Check {
 	return health.Check{
-		BusinessImpact:   "Article relationships to packages will not be written / updated",
+		BusinessImpact:   "Content relationships to packages will not be written / updated",
 		Name:             "Content collection Neo4j writer health check",
 		PanicGuide:       "https://dewey.ft.com/upp-content-collection-rw-neo4j.html",
 		Severity:         1,
 		TechnicalSummary: "Checks if the service responsible with writing content collections to Neo4j is healthy",
 		Checker: func() (string, error) {
-			return service.httpAvailabilityChecker(service.config.writerHealthUri)
+			return service.httpAvailabilityChecker(service.config.writerHealthURI)
+		},
+	}
+}
+
+func (service *healthService) contentResolverCheck() health.Check {
+	return health.Check{
+		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
+		Name:             "Document store API health check",
+		PanicGuide:       "https://dewey.ft.com/document-store-api.html",
+		Severity:         1,
+		TechnicalSummary: "Checks if the service responsible with saving and retrieving content is healthy",
+		Checker: func() (string, error) {
+			return service.httpAvailabilityChecker(service.config.contentResolverHealthURI)
+		},
+	}
+}
+
+func (service *healthService) producerCheck() health.Check {
+	return health.Check{
+		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
+		Name:             "Message producer health check",
+		PanicGuide:       "https://dewey.ft.com/document-store-api.html",
+		Severity:         1,
+		TechnicalSummary: "Checks if Kafka can be accessed through http proxy",
+		Checker: func() (string, error) {
+			return service.config.producer.ConnectivityCheck()
 		},
 	}
 }

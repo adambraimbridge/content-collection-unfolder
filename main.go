@@ -2,6 +2,7 @@ package main
 
 import (
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
 	"net"
@@ -17,26 +18,29 @@ func main() {
 	sc := createServiceConfiguration(app)
 
 	log.SetLevel(log.InfoLevel)
-	log.Infof("[Startup] content-collection-unfolder is starting ")
 
 	app.Action = func() {
-		log.Infof("System code: %s, App Name: %s, Port: %s", sc.appSystemCode, sc.appName, sc.appPort)
+		log.Infof("[Startup] content-collection-unfolder is starting with service hc %s", sc.toMap())
 
 		client := setupHttpClient()
-		config := &healthConfig{
-			client:          client,
-			port:            *sc.appPort,
-			appSystemCode:   *sc.appSystemCode,
-			appName:         *sc.appName,
-			appDesc:         appDescription,
-			writerHealthUri: *sc.writerHealthURI,
+		producer := setupMessageProducer(sc, client)
+
+		hc := &healthConfig{
+			appDesc:                  appDescription,
+			port:                     *sc.appPort,
+			appSystemCode:            *sc.appSystemCode,
+			appName:                  *sc.appName,
+			writerHealthURI:          *sc.writerHealthURI,
+			contentResolverHealthURI: *sc.contentResolverHealthURI,
+			producer:                 producer,
+			client:                   client,
 		}
 
 		newRouting(
 			newUnfolder(
 				fw.NewForwarder(client, *sc.writerURI),
 			),
-			newHealthService(config),
+			newHealthService(hc),
 		).listenAndServe(*sc.appPort)
 	}
 	err := app.Run(os.Args)
@@ -58,4 +62,15 @@ func setupHttpClient() *http.Client {
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
+}
+
+func setupMessageProducer(sc *serviceConfig, client *http.Client) producer.MessageProducer {
+	config := producer.MessageProducerConfig{
+		Addr:          *sc.queueAddress,
+		Topic:         *sc.writeTopic,
+		Queue:         *sc.writeQueue,
+		Authorization: *sc.authorization,
+	}
+
+	return producer.NewMessageProducerWithHTTPClient(config, client)
 }

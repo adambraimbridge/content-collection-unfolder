@@ -12,6 +12,10 @@ type serviceConfig struct {
 	writerHealthURI          *string
 	contentResolverURI       *string
 	contentResolverHealthURI *string
+	queueAddress             *string
+	writeTopic               *string
+	writeQueue               *string
+	authorization            *string
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {
@@ -64,6 +68,33 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		EnvVar: "CONTENT_RESOLVER_HEALTH_URI",
 	})
 
+	queueAddress := app.String(cli.StringOpt{
+		Name:   "queue-address",
+		Value:  "http://localhost:8080",
+		Desc:   "Addresses to connect to the queue (hostnames).",
+		EnvVar: "Q_ADDR",
+	})
+
+	writeTopic := app.String(cli.StringOpt{
+		Name:   "write-topic",
+		Value:  "CmsPostPublicationEvents",
+		Desc:   "The topic to write the meassages to.",
+		EnvVar: "Q_WRITE_TOPIC",
+	})
+
+	writeQueue := app.String(cli.StringOpt{
+		Name:   "write-queue",
+		Value:  "kafka",
+		Desc:   "The queue to write the meassages to.",
+		EnvVar: "Q_WRITE_QUEUE",
+	})
+
+	authorization := app.String(cli.StringOpt{
+		Name:   "authorization",
+		Desc:   "Authorization key to access the queue.",
+		EnvVar: "Q_AUTHORIZATION",
+	})
+
 	return &serviceConfig{
 		appSystemCode:            appSystemCode,
 		appName:                  appName,
@@ -72,5 +103,25 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		writerHealthURI:          writerHealthURI,
 		contentResolverURI:       contentResolverURI,
 		contentResolverHealthURI: contentResolverHealthURI,
+		queueAddress:             queueAddress,
+		writeTopic:               writeTopic,
+		writeQueue:               writeQueue,
+		authorization:            authorization,
+	}
+}
+
+func (sc *serviceConfig) toMap() map[string]string {
+	return map[string]string{
+		"appSystemCode":            *sc.appSystemCode,
+		"appName":                  *sc.appName,
+		"appPort":                  *sc.appPort,
+		"writerURI":                *sc.writerURI,
+		"writerHealthURI":          *sc.writerHealthURI,
+		"contentResolverURI":       *sc.contentResolverURI,
+		"contentResolverHealthURI": *sc.contentResolverHealthURI,
+		"queueAddress":             *sc.queueAddress,
+		"writeTopic":               *sc.writeTopic,
+		"writeQueue":               *sc.writeQueue,
+		"authorization":            *sc.authorization,
 	}
 }
