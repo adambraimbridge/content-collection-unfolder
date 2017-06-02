@@ -5,11 +5,13 @@ import (
 )
 
 type serviceConfig struct {
-	appSystemCode               string
-	appName                     string
-	appPort                     string
-	contentResolverAppURI       string
-	contentResolverAppHealthURI string
+	appSystemCode            *string
+	appName                  *string
+	appPort                  *string
+	writerURI                *string
+	writerHealthURI          *string
+	contentResolverURI       *string
+	contentResolverHealthURI *string
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {
@@ -34,20 +36,41 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		EnvVar: "APP_PORT",
 	})
 
-	contentResolverAppURI := app.String(cli.StringOpt{
-		Name:   "content-resolver-app-uri",
+	writerURI := app.String(cli.StringOpt{
+		Name:   "writer-uri",
+		Value:  "http://localhost:8080/__content-collection-rw-neo4j/content-collection/",
+		Desc:   "URI of the Writer",
+		EnvVar: "WRITER_URI",
+	})
+
+	writerHealthURI := app.String(cli.StringOpt{
+		Name:   "writer-health-uri",
+		Value:  "http://localhost:8080/__content-collection-rw-neo4j/__health",
+		Desc:   "URI of the Writer health endpoint",
+		EnvVar: "WRITER_HEALTH_URI",
+	})
+
+	contentResolverURI := app.String(cli.StringOpt{
+		Name:   "content-resolver-uri",
 		Value:  "http://localhost:8080/__document-store-api/content/",
-		Desc:   "Content Resolver APP URI",
-		EnvVar: "CONTENT_RESOLVER_APP_URI",
+		Desc:   "URI of the Content Resolver",
+		EnvVar: "CONTENT_RESOLVER_URI",
 	})
 
-	contentResolverAppHealthURI := app.String(cli.StringOpt{
-		Name:   "content-resolver-app-health-uri",
+	contentResolverHealthURI := app.String(cli.StringOpt{
+		Name:   "content-resolver-health-uri",
 		Value:  "http://localhost:8080/__document-store-api/__health",
-		Desc:   "URI of the Content Resolver APP health endpoint",
-		EnvVar: "CONTENT_RESOLVER_APP_HEALTH_URI",
+		Desc:   "URI of the Content Resolver health endpoint",
+		EnvVar: "CONTENT_RESOLVER_HEALTH_URI",
 	})
 
-	return &serviceConfig{appSystemCode: *appSystemCode, appName: *appName, appPort: *appPort, contentResolverAppURI: *contentResolverAppURI,
-		contentResolverAppHealthURI: *contentResolverAppHealthURI}
+	return &serviceConfig{
+		appSystemCode:            appSystemCode,
+		appName:                  appName,
+		appPort:                  appPort,
+		writerURI:                writerURI,
+		writerHealthURI:          writerHealthURI,
+		contentResolverURI:       contentResolverURI,
+		contentResolverHealthURI: contentResolverHealthURI,
+	}
 }
