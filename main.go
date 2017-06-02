@@ -15,27 +15,6 @@ const appDescription = "UPP Service that forwards mapped content collections to 
 func main() {
 	app := cli.App("content-collection-unfolder", appDescription)
 
-	appSystemCode := app.String(cli.StringOpt{
-		Name:   "app-system-code",
-		Value:  "content-collection-unfolder",
-		Desc:   "System Code of the application",
-		EnvVar: "APP_SYSTEM_CODE",
-	})
-
-	appName := app.String(cli.StringOpt{
-		Name:   "app-name",
-		Value:  "Content Collection Unfolder",
-		Desc:   "Application name",
-		EnvVar: "APP_NAME",
-	})
-
-	port := app.String(cli.StringOpt{
-		Name:   "port",
-		Value:  "8080",
-		Desc:   "Port to listen on",
-		EnvVar: "APP_PORT",
-	})
-
 	writerUri := app.String(cli.StringOpt{
 		Name:   "writer-uri",
 		Value:  "http://localhost:8080/__content-collection-rw-neo4j/content-collection/",
@@ -53,15 +32,17 @@ func main() {
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] content-collection-unfolder is starting ")
 
+	sc := createServiceConfiguration(app)
+
 	app.Action = func() {
-		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
+		log.Infof("System code: %s, App Name: %s, Port: %s", sc.appSystemCode, sc.appName, sc.appPort)
 
 		client := setupHttpClient()
 		config := &healthConfig{
 			client:          client,
-			port:            *port,
-			appSystemCode:   *appSystemCode,
-			appName:         *appName,
+			port:            sc.appPort,
+			appSystemCode:   sc.appSystemCode,
+			appName:         sc.appName,
 			appDesc:         appDescription,
 			writerHealthUri: *writerHealthUri,
 		}
@@ -71,7 +52,7 @@ func main() {
 				fw.NewForwarder(client, *writerUri),
 			),
 			newHealthService(config),
-		).listenAndServe(*port)
+		).listenAndServe(sc.appPort)
 	}
 	err := app.Run(os.Args)
 	if err != nil {
