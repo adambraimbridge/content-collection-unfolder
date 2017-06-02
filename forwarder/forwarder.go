@@ -3,7 +3,7 @@ package forwarder
 import (
 	"bytes"
 	"fmt"
-	tidUtil "github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Financial-Times/transactionid-utils-go"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -36,7 +36,7 @@ func (f *defaultForwarder) Forward(tid string, uuid string, collectionType strin
 		return nil, err
 	}
 	req.Header.Add("Content-Type", "application/json;charset=utf-8")
-	req.Header.Add(tidUtil.TransactionIDHeader, tid)
+	req.Header.Add(transactionidutils.TransactionIDHeader, tid)
 
 	resp, err := f.client.Do(req)
 	if err != nil {

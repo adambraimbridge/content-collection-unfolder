@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
-	tidutils "github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -26,7 +26,7 @@ func newUnfolder(forwarder fw.Forwarder) *unfolder {
 }
 
 func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
-	tid := tidutils.GetTransactionIDFromRequest(req)
+	tid := transactionidutils.GetTransactionIDFromRequest(req)
 	uuid, collectionType := u.extractPathVariables(req)
 
 	logEntry := log.WithFields(log.Fields{
@@ -35,7 +35,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		"collectionType": collectionType,
 	})
 
-	writer.Header().Add(tidutils.TransactionIDHeader, tid)
+	writer.Header().Add(transactionidutils.TransactionIDHeader, tid)
 	writer.Header().Add("Content-Type", "application/json;charset=utf-8")
 
 	if err := uuidutils.ValidateUUID(uuid); err != nil {

@@ -9,6 +9,12 @@
 			"revisionTime": "2017-05-25T09:50:41Z"
 		},
 		{
+			"checksumSHA1": "ER4UrILGiuMyF5AY4jfLCpgG148=",
+			"path": "github.com/Financial-Times/message-queue-go-producer/producer",
+			"revision": "163efbf93f1a2ba839b317d26e37426bcfa3850a",
+			"revisionTime": "2017-03-20T10:55:12Z"
+		},
+		{
 			"checksumSHA1": "zFas12riRjQgyOiiJKgnaB0zwjc=",
 			"path": "github.com/Financial-Times/service-status-go/buildinfo",
 			"revision": "3f5199736a3d7ae52394c63aac36834786825e21",
@@ -77,10 +83,29 @@
 			"revisionTime": "2017-05-26T06:56:33Z"
 		},
 		{
+			"checksumSHA1": "e+j+Q8klF7UihHzCzjEfcLLR3X4=",
+			"path": "github.com/satori/go.uuid",
+			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
+			"revisionTime": "2017-03-21T23:07:31Z"
+		},
+		{
+			"checksumSHA1": "EO+jcRet/AJ6IY3lBO8l8BLsZWg=",
+			"origin": "github.com/stretchr/testify/vendor/github.com/stretchr/objx",
+			"path": "github.com/stretchr/objx",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
 			"checksumSHA1": "Fg5fMR1M11cZuMA8LS2uudmau2A=",
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "eb84487caee2d64c96bb5c6afb60fd4f631eb0f0",
 			"revisionTime": "2017-05-26T06:56:33Z"
+		},
+		{
+			"checksumSHA1": "yHFRFEjU0Sw+rVj4QsarW7X2uEo=",
+			"path": "github.com/stretchr/testify/mock",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "6kF7mPXIAVaHHZu4qaljLMgeF80=",
@@ -95,5 +120,5 @@
 			"revisionTime": "2017-03-15T20:58:54Z"
 		}
 	],
-	"rootPath": "Financial-Times/content-collection-unfolder"
+	"rootPath": "github.com/Financial-Times/content-collection-unfolder"
 }
