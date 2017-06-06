@@ -24,7 +24,7 @@ func NewUuidResolver() UuidsAndDateResolver {
 
 func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (*UuidsAndDate, error) {
 	reqMap := map[string]interface{}{}
-	err := json.Unmarshal(reqData, reqMap)
+	err := json.Unmarshal(reqData, &reqMap)
 	if err != nil {
 		return nil, fmt.Errorf("Unmarshalling error: %v", err)
 	}
