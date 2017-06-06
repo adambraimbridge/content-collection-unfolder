@@ -77,7 +77,7 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 
 	writeTopic := app.String(cli.StringOpt{
 		Name:   "write-topic",
-		Value:  "CmsPostPublicationEvents",
+		Value:  "PostPublicationEvents",
 		Desc:   "The topic to write the meassages to.",
 		EnvVar: "Q_WRITE_TOPIC",
 	})
