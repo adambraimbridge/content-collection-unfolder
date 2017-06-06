@@ -8,6 +8,7 @@ type serviceConfig struct {
 	appSystemCode            *string
 	appName                  *string
 	appPort                  *string
+	unfoldingWhitelist       *[]string
 	writerURI                *string
 	writerHealthURI          *string
 	contentResolverURI       *string
@@ -38,6 +39,13 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		Value:  "8080",
 		Desc:   "Port to listen on",
 		EnvVar: "APP_PORT",
+	})
+
+	unfoldingWhitelist := app.Strings(cli.StringsOpt{
+		Name:   "unfolding-whitelist",
+		Value:  []string{"content-package"},
+		Desc:   "Collection types for which the unfolding process should be performed",
+		EnvVar: "UNFOLDING_WHITELIST",
 	})
 
 	writerURI := app.String(cli.StringOpt{
@@ -99,6 +107,7 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		appSystemCode:            appSystemCode,
 		appName:                  appName,
 		appPort:                  appPort,
+		unfoldingWhitelist:       unfoldingWhitelist,
 		writerURI:                writerURI,
 		writerHealthURI:          writerHealthURI,
 		contentResolverURI:       contentResolverURI,
@@ -110,11 +119,12 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 	}
 }
 
-func (sc *serviceConfig) toMap() map[string]string {
-	return map[string]string{
+func (sc *serviceConfig) toMap() map[string]interface{} {
+	return map[string]interface{}{
 		"appSystemCode":            *sc.appSystemCode,
 		"appName":                  *sc.appName,
 		"appPort":                  *sc.appPort,
+		"unfoldingWhitelist":       *sc.unfoldingWhitelist,
 		"writerURI":                *sc.writerURI,
 		"writerHealthURI":          *sc.writerHealthURI,
 		"contentResolverURI":       *sc.contentResolverURI,

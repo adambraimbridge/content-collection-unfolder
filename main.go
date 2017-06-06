@@ -44,6 +44,7 @@ func main() {
 				res.NewUuidResolver(),
 				res.NewContentResolver(client, *sc.contentResolverURI),
 				prod.NewContentProducer(producer),
+				*sc.unfoldingWhitelist,
 			),
 			newHealthService(hc),
 		).listenAndServe(*sc.appPort)

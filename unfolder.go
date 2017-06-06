@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
 	prod "github.com/Financial-Times/content-collection-unfolder/producer"
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
@@ -14,7 +15,7 @@ import (
 )
 
 const (
-	unfolderPath = "/unfold/{collectionType}/{uuid}"
+	unfolderPath = "/content-collection/{collectionType}/{uuid}"
 )
 
 type unfolder struct {
@@ -22,15 +23,28 @@ type unfolder struct {
 	uuidsAndDateRes res.UuidsAndDateResolver
 	contentRes      res.ContentResolver
 	producer        prod.ContentProducer
+	whitelist       map[string]struct{}
 }
 
-func newUnfolder(forwarder fw.Forwarder, uuidsAndDateRes res.UuidsAndDateResolver, contentRes res.ContentResolver, producer prod.ContentProducer) *unfolder {
-	return &unfolder{
+func newUnfolder(forwarder fw.Forwarder,
+	uuidsAndDateRes res.UuidsAndDateResolver,
+	contentRes res.ContentResolver,
+	producer prod.ContentProducer,
+	whitelist []string) *unfolder {
+
+	u := &unfolder{
 		forwarder:       forwarder,
 		uuidsAndDateRes: uuidsAndDateRes,
 		contentRes:      contentRes,
 		producer:        producer,
+		whitelist:       map[string]struct{}{},
 	}
+
+	for _, val := range whitelist {
+		u.whitelist[val] = struct{}{}
+	}
+
+	return u
 }
 
 func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
@@ -68,8 +82,8 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if fwResp.Status != http.StatusOK {
-		logEntry.Warnf("Forwarder received status %v", fwResp.Status)
+	if skip, reason := u.skipUnfolding(fwResp, collectionType); skip {
+		logEntry.Infof("Skip unfolding. Reason: %v", reason)
 		u.writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
@@ -98,6 +112,18 @@ func (u *unfolder) extractPathVariables(req *http.Request) (string, string) {
 	uuid := vars["uuid"]
 	collectionType := vars["collectionType"]
 	return uuid, collectionType
+}
+
+func (u *unfolder) skipUnfolding(fwResp *fw.ForwarderResponse, collectionType string) (bool, string) {
+	if fwResp.Status != http.StatusOK {
+		return true, fmt.Sprintf("Writer returned status [%v]", fwResp.Status)
+	}
+
+	if _, ok := u.whitelist[collectionType]; !ok {
+		return true, fmt.Sprintf("Collection type [%v] not in unfolding whitelist", collectionType)
+	}
+
+	return false, ""
 }
 
 func (u *unfolder) writeError(writer http.ResponseWriter, status int, err error) {
