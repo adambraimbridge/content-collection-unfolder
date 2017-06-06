@@ -81,6 +81,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	logEntry.Infof("Resolving contents for following UUIDs: %v", uuidsAndDate.UuidArr)
 	contentArr, err := u.contentRes.ResolveContents(uuidsAndDate.UuidArr, tid)
 	if err != nil {
 		logEntry.Errorf("Error while resolving Contents: %v", err)
@@ -88,6 +89,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	logEntry.Info("Producing Kafka messages for resolved contents")
 	u.producer.Send(tid, uuidsAndDate.LastModified, contentArr)
 }
 
