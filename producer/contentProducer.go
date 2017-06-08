@@ -105,10 +105,6 @@ func (p *defaultContentProducer) marshallToString(body *publicationMessageBody) 
 		return nil, err
 	}
 
-	//not sure if needed
-	//binary = bytes.Replace(binary, []byte("\\u003c"), []byte("<"), -1)
-	//binary = bytes.Replace(binary, []byte("\\u003e"), []byte(">"), -1)
-
 	binaryStr := string(binary)
 	return &binaryStr, nil
 }
