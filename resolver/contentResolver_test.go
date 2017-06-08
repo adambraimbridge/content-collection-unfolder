@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"bytes"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"bytes"
 )
 
 const (

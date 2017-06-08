@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Financial-Times/uuid-utils-go"
+	"time"
 )
+
+const dateTimeFormat = "2006-01-02T15:04:05.000Z0700"
 
 type UuidsAndDateResolver interface {
 	Resolve(reqData []byte, respData []byte) (*UuidsAndDate, error)
@@ -23,18 +26,18 @@ func NewUuidResolver() UuidsAndDateResolver {
 }
 
 func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (*UuidsAndDate, error) {
-	reqMap := map[string]interface{}{}
-	err := json.Unmarshal(reqData, &reqMap)
+	cc := &contentCollection{}
+	err := json.Unmarshal(reqData, cc)
 	if err != nil {
 		return nil, fmt.Errorf("Unmarshalling error: %v", err)
 	}
 
-	uuidArr, err := r.resolveUuids(reqMap)
+	uuidArr, err := r.resolveUuids(cc)
 	if err != nil {
 		return nil, err
 	}
 
-	lastModified, err := r.resolveLastModified(reqMap)
+	lastModified, err := r.resolveLastModified(cc)
 	if err != nil {
 		return nil, err
 	}
@@ -42,55 +45,33 @@ func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (*UuidsAn
 	return &UuidsAndDate{uuidArr, lastModified}, nil
 }
 
-func (*fromRequestResolver) resolveUuids(reqMap map[string]interface{}) ([]string, error) {
-	items, ok := reqMap["items"]
-	if !ok {
-		return nil, fmt.Errorf("Found request with no items. Request was: %v", reqMap)
-	}
-
-	itemArr, ok := items.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("Found malformed item array. Request was: %v", reqMap)
-	}
-
+func (*fromRequestResolver) resolveUuids(cc *contentCollection) ([]string, error) {
 	uuidArr := []string{}
-	for _, item := range itemArr {
-		itemMap, ok := item.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("Found malformed item. Request was: %v", reqMap)
-		}
-
-		uuid, ok := itemMap ["uuid"]
-		if !ok {
-			return nil, fmt.Errorf("Found item with missing UUID. Request was: %v", reqMap)
-		}
-
-		castUuid, ok := uuid.(string)
-		if !ok {
-			return nil, fmt.Errorf("Found item with malformed UUID. Request was: %v", reqMap)
-		}
-
-		err := uuidutils.ValidateUUID(castUuid)
+	for _, item := range cc.Items {
+		err := uuidutils.ValidateUUID(item.Uuid)
 		if err != nil {
-			return nil, fmt.Errorf("UUID validation error: %v. Request was: %v", err, reqMap)
+			return nil, fmt.Errorf("UUID validation error: %v", err)
 		}
 
-		uuidArr = append(uuidArr, castUuid)
+		uuidArr = append(uuidArr, item.Uuid)
 	}
 
 	return uuidArr, nil
 }
 
-func (*fromRequestResolver) resolveLastModified(reqMap map[string]interface{}) (string, error) {
-	lastModified, ok := reqMap["lastModified"]
-	if !ok {
-		return "", fmt.Errorf("Found request with no lastModified field. Request was: %v", reqMap)
+func (*fromRequestResolver) resolveLastModified(cc *contentCollection) (string, error) {
+	if _, err := time.Parse(dateTimeFormat, cc.LastModified); err != nil {
+		return "", fmt.Errorf("Invalid lastModified value. Error was: %v", err)
 	}
 
-	castLastModified, ok := lastModified.(string)
-	if !ok {
-		return "", fmt.Errorf("Found request with malforemd lastModified field. Request was: %v", reqMap)
-	}
+	return cc.LastModified, nil
+}
 
-	return castLastModified, nil
+type contentCollection struct {
+	LastModified string                  `json:"lastModified"`
+	Items        []contentCollectionItem `json:"items"`
+}
+
+type contentCollectionItem struct {
+	Uuid string `json:"uuid"`
 }

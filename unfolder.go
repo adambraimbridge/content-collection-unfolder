@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
 	prod "github.com/Financial-Times/content-collection-unfolder/producer"
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
@@ -82,8 +81,14 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if skip, reason := u.skipUnfolding(fwResp, collectionType); skip {
-		logEntry.Infof("Skip unfolding. Reason: %v", reason)
+	if fwResp.Status != http.StatusOK {
+		logEntry.Warnf("Skip unfolding. Writer returned status [%v]", fwResp.Status)
+		u.writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
+		return
+	}
+
+	if _, ok := u.whitelist[collectionType]; !ok {
+		logEntry.Infof("Skip unfolding. Collection type [%v] not in unfolding whitelist", collectionType)
 		u.writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
@@ -112,18 +117,6 @@ func (u *unfolder) extractPathVariables(req *http.Request) (string, string) {
 	uuid := vars["uuid"]
 	collectionType := vars["collectionType"]
 	return uuid, collectionType
-}
-
-func (u *unfolder) skipUnfolding(fwResp *fw.ForwarderResponse, collectionType string) (bool, string) {
-	if fwResp.Status != http.StatusOK {
-		return true, fmt.Sprintf("Writer returned status [%v]", fwResp.Status)
-	}
-
-	if _, ok := u.whitelist[collectionType]; !ok {
-		return true, fmt.Sprintf("Collection type [%v] not in unfolding whitelist", collectionType)
-	}
-
-	return false, ""
 }
 
 func (u *unfolder) writeError(writer http.ResponseWriter, status int, err error) {
