@@ -60,7 +60,7 @@ func (*fromRequestResolver) resolveUuids(reqMap map[string]interface{}) ([]strin
 			return nil, fmt.Errorf("Found malformed item. Request was: %v", reqMap)
 		}
 
-		uuid, ok := itemMap["uuid"]
+		uuid, ok := itemMap ["uuid"]
 		if !ok {
 			return nil, fmt.Errorf("Found item with missing UUID. Request was: %v", reqMap)
 		}

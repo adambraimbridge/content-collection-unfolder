@@ -1,7 +1,6 @@
 package resolver
 
 import (
-	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -10,15 +9,12 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"bytes"
 )
 
 const (
 	statusWorking    = "working"
 	statusNotWorking = "notWorking"
-
-	outputFile1Content     = "document-store-api-1-content-output.json"
-	outputFile2Content     = "document-store-api-2-content-output.json"
-	outputFileEmptyContent = "document-store-api-empty-content-output.json"
 
 	tid = "tid_qkeqptjwji"
 )
@@ -26,20 +22,23 @@ const (
 var contentResolver ContentResolver
 var dsAPIMock *httptest.Server
 
-func mockDSAPI(appStatus string, outputFileName string) {
+func mockDSAPI(t *testing.T, appStatus string, outputFileName string) {
+	file, err := os.Open("../test-resources/" + outputFileName)
+	assert.NoError(t, err, "Opening file shouldn't throw error.")
+	defer file.Close()
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, file)
+	assert.NoError(t, err, "Reading from file to []byte buffer shouldn't throw error.")
+	mockDSAPIBytes(appStatus, buf.Bytes())
+}
+
+func mockDSAPIBytes(appStatus string, output []byte) {
 	router := mux.NewRouter()
 	var contentResolverEndpointHandler http.HandlerFunc
 
 	if appStatus == statusWorking {
 		contentResolverEndpointHandler = func(w http.ResponseWriter, r *http.Request) {
-			file, err := os.Open("../test-resources/" + outputFileName)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			defer file.Close()
-			io.Copy(w, file)
+			w.Write(output)
 		}
 	} else if appStatus == statusNotWorking {
 		contentResolverEndpointHandler = func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +53,7 @@ func mockDSAPI(appStatus string, outputFileName string) {
 }
 
 func Test_callContentResolverApp_1_Content(t *testing.T) {
-	mockDSAPI(statusWorking, outputFile1Content)
+	mockDSAPI(t, statusWorking, "document-store-api-1-content-output.json")
 
 	uuids := []string{"ab43b1a6-1f47-11e7-b7d3-163f5a7f229c"}
 	contents, err := contentResolver.ResolveContents(uuids, tid)
@@ -66,7 +65,7 @@ func Test_callContentResolverApp_1_Content(t *testing.T) {
 }
 
 func Test_callContentResolverApp_2_Content(t *testing.T) {
-	mockDSAPI(statusWorking, outputFile2Content)
+	mockDSAPI(t, statusWorking, "document-store-api-2-content-output.json")
 
 	uuids := []string{"ab43b1a6-1f47-11e7-b7d3-163f5a7f229c", "70c800d8-b3e3-11e6-ba85-95d1533d9a62"}
 	contents, err := contentResolver.ResolveContents(uuids, tid)
@@ -78,7 +77,7 @@ func Test_callContentResolverApp_2_Content(t *testing.T) {
 }
 
 func Test_callContentResolverApp_Empty_Content(t *testing.T) {
-	mockDSAPI(statusWorking, outputFileEmptyContent)
+	mockDSAPIBytes(statusWorking, []byte("[]"))
 
 	uuids := []string{}
 	contents, err := contentResolver.ResolveContents(uuids, tid)
@@ -90,7 +89,7 @@ func Test_callContentResolverApp_Empty_Content(t *testing.T) {
 }
 
 func Test_callContentResolverApp_NotWorking(t *testing.T) {
-	mockDSAPI(statusNotWorking, outputFileEmptyContent)
+	mockDSAPIBytes(statusNotWorking, []byte("[]"))
 
 	uuids := []string{}
 	_, err := contentResolver.ResolveContents(uuids, tid)
