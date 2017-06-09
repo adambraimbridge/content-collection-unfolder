@@ -16,7 +16,7 @@ import (
 const timeFormat = "2006-01-02T03:04:05.000Z0700"
 
 func TestHeadersAndBodyAreOk(t *testing.T) {
-	mp := new(MockProducer)
+	mp := new(mockProducer)
 	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Return(nil)
 
 	cp := NewContentProducer(mp)
@@ -57,7 +57,7 @@ func TestHeadersAndBodyAreOk(t *testing.T) {
 func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 	headerIds := []string{}
 
-	mp := new(MockProducer)
+	mp := new(mockProducer)
 	mp.On("SendMessage",
 		mock.AnythingOfType("string"),
 		mock.MatchedBy(func(msg producer.Message) bool {
@@ -79,7 +79,7 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 }
 
 func TestFailedUuidExtractionCausesSkip(t *testing.T) {
-	mp := new(MockProducer)
+	mp := new(mockProducer)
 
 	cp := NewContentProducer(mp)
 
@@ -91,7 +91,7 @@ func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 }
 
 func TestSendFailureDoesNotStopProducer(t *testing.T) {
-	mp := new(MockProducer)
+	mp := new(mockProducer)
 	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Times(4).Return(errors.New("Test error"))
 
 	cp := NewContentProducer(mp)
@@ -108,7 +108,7 @@ func TestSendFailureDoesNotStopProducer(t *testing.T) {
 }
 
 func TestMarshallErrorsCauseSkip(t *testing.T) {
-	mp := new(MockProducer)
+	mp := new(mockProducer)
 
 	cp := NewContentProducer(mp)
 
@@ -125,16 +125,16 @@ func unmarshall(jsonString string) map[string]interface{} {
 	return u
 }
 
-type MockProducer struct {
+type mockProducer struct {
 	mock.Mock
 }
 
-func (mp *MockProducer) SendMessage(key string, msg producer.Message) error {
+func (mp *mockProducer) SendMessage(key string, msg producer.Message) error {
 	args := mp.Called(key, msg)
 	return args.Error(0)
 }
 
-func (mp *MockProducer) ConnectivityCheck() (string, error) {
+func (mp *mockProducer) ConnectivityCheck() (string, error) {
 	args := mp.Called()
 	return args.String(0), args.Error(1)
 }
