@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
-	tidutils "github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
-	"github.com/satori/go.uuid"
+	gouuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -21,7 +21,7 @@ func TestHeadersAndBodyAreOk(t *testing.T) {
 
 	cp := NewContentProducer(mp)
 
-	tid := tidutils.NewTransactionID()
+	tid := transactionidutils.NewTransactionID()
 	lastModified := time.Now().Format(timeFormat)
 	uuid := gouuid.NewV4().String()
 	contentArr := map[string]interface{}{"uuid": uuid}
@@ -68,7 +68,7 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 
 	cp := NewContentProducer(mp)
 
-	cp.Send(tidutils.NewTransactionID(),
+	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
 		[]map[string]interface{}{{"uuid": gouuid.NewV4().String()}, {"uuid": gouuid.NewV4().String()}})
 
@@ -83,7 +83,7 @@ func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 
 	cp := NewContentProducer(mp)
 
-	cp.Send(tidutils.NewTransactionID(),
+	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
 		[]map[string]interface{}{{}, {"uuid": 123}, {"uuid": "1234"}})
 
@@ -97,10 +97,10 @@ func TestSendFailureDoesNotStopProducer(t *testing.T) {
 	cp := NewContentProducer(mp)
 
 	contentArr := []map[string]interface{}{{"uuid": gouuid.NewV4().String()}, {"uuid": gouuid.NewV4().String()}}
-	cp.Send(tidutils.NewTransactionID(),
+	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
 		contentArr)
-	cp.Send(tidutils.NewTransactionID(),
+	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
 		contentArr)
 
@@ -112,7 +112,7 @@ func TestMarshallErrorsCauseSkip(t *testing.T) {
 
 	cp := NewContentProducer(mp)
 
-	cp.Send(tidutils.NewTransactionID(),
+	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
 		[]map[string]interface{}{{"uuid": gouuid.NewV4().String(), "dude, what?": func() {}}})
 
