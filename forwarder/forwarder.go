@@ -10,7 +10,7 @@ import (
 )
 
 type Forwarder interface {
-	Forward(tid string, uuid string, collectionType string, reqBody []byte) (*ForwarderResponse, error)
+	Forward(tid string, uuid string, collectionType string, reqBody []byte) (ForwarderResponse, error)
 }
 
 type ForwarderResponse struct {
@@ -30,26 +30,26 @@ func NewForwarder(client *http.Client, writerUri string) Forwarder {
 	}
 }
 
-func (f *defaultForwarder) Forward(tid string, uuid string, collectionType string, reqBody []byte) (*ForwarderResponse, error) {
+func (f *defaultForwarder) Forward(tid string, uuid string, collectionType string, reqBody []byte) (ForwarderResponse, error) {
 	req, err := http.NewRequest(http.MethodPut, f.buildUrl(collectionType, uuid), bytes.NewBuffer(reqBody))
 	if err != nil {
-		return nil, err
+		return ForwarderResponse{}, err
 	}
 	req.Header.Add("Content-Type", "application/json;charset=utf-8")
 	req.Header.Add(transactionidutils.TransactionIDHeader, tid)
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		return nil, err
+		return ForwarderResponse{}, err
 	}
 
 	defer resp.Body.Close()
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return ForwarderResponse{}, err
 	}
 
-	return &ForwarderResponse{resp.StatusCode, respBody}, nil
+	return ForwarderResponse{resp.StatusCode, respBody}, nil
 }
 
 func (f *defaultForwarder) buildUrl(collectionType string, uuid string) string {

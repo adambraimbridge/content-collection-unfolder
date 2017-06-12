@@ -13,10 +13,10 @@ type serviceConfig struct {
 	writerHealthURI          *string
 	contentResolverURI       *string
 	contentResolverHealthURI *string
-	queueAddress             *string
 	writeTopic               *string
-	writeQueue               *string
-	authorization            *string
+	kafkaAddr                *string
+	kafkaHostname            *string
+	kafkaAuth                *string
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {
@@ -76,30 +76,30 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		EnvVar: "CONTENT_RESOLVER_HEALTH_URI",
 	})
 
-	queueAddress := app.String(cli.StringOpt{
-		Name:   "queue-address",
-		Value:  "http://localhost:8080",
-		Desc:   "Addresses to connect to the queue (hostnames).",
-		EnvVar: "Q_ADDR",
-	})
-
 	writeTopic := app.String(cli.StringOpt{
-		Name:   "write-topic",
+		Name:   "kafka-write-topic",
 		Value:  "PostPublicationEvents",
-		Desc:   "The topic to write the meassages to.",
+		Desc:   "The topic to write the messages to",
 		EnvVar: "Q_WRITE_TOPIC",
 	})
 
-	writeQueue := app.String(cli.StringOpt{
-		Name:   "write-queue",
-		Value:  "kafka",
-		Desc:   "The queue to write the meassages to.",
-		EnvVar: "Q_WRITE_QUEUE",
+	kafkaAddr := app.String(cli.StringOpt{
+		Name:   "kafka-proxy-address",
+		Value:  "http://localhost:8080",
+		Desc:   "Addresses of the kafka proxy",
+		EnvVar: "Q_ADDR",
 	})
 
-	authorization := app.String(cli.StringOpt{
-		Name:   "authorization",
-		Desc:   "Authorization key to access the queue.",
+	kafkaHostname := app.String(cli.StringOpt{
+		Name:   "kafka-proxy-hostname",
+		Value:  "kafka",
+		Desc:   "The hostname of the kafka proxy (for hostname based routing)",
+		EnvVar: "Q_HOSTNAME",
+	})
+
+	kafkaAuth := app.String(cli.StringOpt{
+		Name:   "kafka-authorization",
+		Desc:   "Authorization for kafka",
 		EnvVar: "Q_AUTHORIZATION",
 	})
 
@@ -112,10 +112,10 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		writerHealthURI:          writerHealthURI,
 		contentResolverURI:       contentResolverURI,
 		contentResolverHealthURI: contentResolverHealthURI,
-		queueAddress:             queueAddress,
 		writeTopic:               writeTopic,
-		writeQueue:               writeQueue,
-		authorization:            authorization,
+		kafkaAddr:                kafkaAddr,
+		kafkaHostname:            kafkaHostname,
+		kafkaAuth:                kafkaAuth,
 	}
 }
 
@@ -129,9 +129,9 @@ func (sc *serviceConfig) toMap() map[string]interface{} {
 		"writerHealthURI":          *sc.writerHealthURI,
 		"contentResolverURI":       *sc.contentResolverURI,
 		"contentResolverHealthURI": *sc.contentResolverHealthURI,
-		"queueAddress":             *sc.queueAddress,
 		"writeTopic":               *sc.writeTopic,
-		"writeQueue":               *sc.writeQueue,
-		"authorization":            *sc.authorization,
+		"kafkaAddr":                *sc.kafkaAddr,
+		"kafkaHostname":            *sc.kafkaHostname,
+		"kafkaAuth":                *sc.kafkaAuth,
 	}
 }

@@ -27,7 +27,14 @@ func main() {
 		client := setupHttpClient()
 		producer := setupMessageProducer(sc, client)
 
-		hc := &healthConfig{
+		unfolder := newUnfolder(
+			fw.NewForwarder(client, *sc.writerURI),
+			res.NewUuidResolver(),
+			res.NewContentResolver(client, *sc.contentResolverURI),
+			prod.NewContentProducer(producer),
+			*sc.unfoldingWhitelist,
+		)
+		healthService := newHealthService(&healthConfig{
 			appDesc:                  appDescription,
 			port:                     *sc.appPort,
 			appSystemCode:            *sc.appSystemCode,
@@ -36,18 +43,10 @@ func main() {
 			contentResolverHealthURI: *sc.contentResolverHealthURI,
 			producer:                 producer,
 			client:                   client,
-		}
+		})
 
-		newRouting(
-			newUnfolder(
-				fw.NewForwarder(client, *sc.writerURI),
-				res.NewUuidResolver(),
-				res.NewContentResolver(client, *sc.contentResolverURI),
-				prod.NewContentProducer(producer),
-				*sc.unfoldingWhitelist,
-			),
-			newHealthService(hc),
-		).listenAndServe(*sc.appPort)
+		routing := newRouting(unfolder, healthService)
+		routing.listenAndServe(*sc.appPort)
 	}
 	err := app.Run(os.Args)
 	if err != nil {
@@ -72,10 +71,10 @@ func setupHttpClient() *http.Client {
 
 func setupMessageProducer(sc *serviceConfig, client *http.Client) producer.MessageProducer {
 	config := producer.MessageProducerConfig{
-		Addr:          *sc.queueAddress,
+		Addr:          *sc.kafkaAddr,
 		Topic:         *sc.writeTopic,
-		Queue:         *sc.writeQueue,
-		Authorization: *sc.authorization,
+		Queue:         *sc.kafkaHostname,
+		Authorization: *sc.kafkaAuth,
 	}
 
 	return producer.NewMessageProducerWithHTTPClient(config, client)

@@ -28,13 +28,13 @@ type healthConfig struct {
 }
 
 func newHealthService(config *healthConfig) *healthService {
-	service := &healthService{config: config}
+	service := healthService{config: config}
 	service.checks = []health.Check{
 		service.writerCheck(),
 		service.contentResolverCheck(),
 		service.producerCheck(),
 	}
-	return service
+	return &service
 }
 
 func (service *healthService) buildHealthCheck() health.HealthCheck {

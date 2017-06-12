@@ -37,14 +37,14 @@ func (p *defaultContentProducer) Send(tid string, lastModified string, contentAr
 
 func (p *defaultContentProducer) sendSingleMessage(tid string, content map[string]interface{}, lastModified string) {
 	logEntry := log.WithField("tid", tid)
-	uuid, err := p.extractUuid(content)
+	uuid, err := extractUuid(content)
 	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		return
 	}
 
 	logEntry = logEntry.WithField("uuid", uuid)
-	msg, err := p.buildMessage(tid, uuid, lastModified, content)
+	msg, err := buildMessage(tid, uuid, lastModified, content)
 	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		return
@@ -56,7 +56,7 @@ func (p *defaultContentProducer) sendSingleMessage(tid string, content map[strin
 	}
 }
 
-func (p *defaultContentProducer) extractUuid(content map[string]interface{}) (string, error) {
+func extractUuid(content map[string]interface{}) (string, error) {
 	val, ok := content["uuid"]
 	if !ok {
 		return "", errors.New("No UUID found in content")
@@ -75,13 +75,13 @@ func (p *defaultContentProducer) extractUuid(content map[string]interface{}) (st
 	return uuid, nil
 }
 
-func (p *defaultContentProducer) buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
+func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
 	body := publicationMessageBody{
 		ContentURI:   uriBase + uuid,
 		LastModified: lastModified,
 		Payload:      content,
 	}
-	bodyAsString, err := p.marshallToString(&body)
+	bodyAsString, err := body.toJson()
 	if err != nil {
 		return nil, err
 	}
@@ -99,18 +99,18 @@ func (p *defaultContentProducer) buildMessage(tid string, uuid string, lastModif
 
 }
 
-func (p *defaultContentProducer) marshallToString(body *publicationMessageBody) (*string, error) {
-	binary, err := json.Marshal(*body)
+type publicationMessageBody struct {
+	ContentURI   string                 `json:"contentUri"`
+	LastModified string                 `json:"lastModified"`
+	Payload      map[string]interface{} `json:"payload"`
+}
+
+func (body publicationMessageBody) toJson() (*string, error) {
+	binary, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 
 	binaryStr := string(binary)
 	return &binaryStr, nil
-}
-
-type publicationMessageBody struct {
-	ContentURI   string                 `json:"contentUri"`
-	LastModified string                 `json:"lastModified"`
-	Payload      map[string]interface{} `json:"payload"`
 }

@@ -10,7 +10,7 @@ import (
 const dateTimeFormat = "2006-01-02T15:04:05.000Z0700"
 
 type UuidsAndDateResolver interface {
-	Resolve(reqData []byte, respData []byte) (*UuidsAndDate, error)
+	Resolve(reqData []byte, respData []byte) (UuidsAndDate, error)
 }
 
 type UuidsAndDate struct {
@@ -25,28 +25,28 @@ func NewUuidResolver() UuidsAndDateResolver {
 	return &fromRequestResolver{}
 }
 
-func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (*UuidsAndDate, error) {
-	cc := &contentCollection{}
-	err := json.Unmarshal(reqData, cc)
+func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (UuidsAndDate, error) {
+	cc := contentCollection{}
+	err := json.Unmarshal(reqData, &cc)
 	if err != nil {
-		return nil, fmt.Errorf("Unmarshalling error: %v", err)
+		return UuidsAndDate{}, fmt.Errorf("Unmarshalling error: %v", err)
 	}
 
-	uuidArr, err := r.resolveUuids(cc)
+	uuidArr, err := resolveUuids(cc)
 	if err != nil {
-		return nil, err
+		return UuidsAndDate{}, err
 	}
 
-	lastModified, err := r.resolveLastModified(cc)
+	lastModified, err := resolveLastModified(cc)
 	if err != nil {
-		return nil, err
+		return UuidsAndDate{}, err
 	}
 
-	return &UuidsAndDate{uuidArr, lastModified}, nil
+	return UuidsAndDate{uuidArr, lastModified}, nil
 }
 
-func (*fromRequestResolver) resolveUuids(cc *contentCollection) ([]string, error) {
-	uuidArr := []string{}
+func resolveUuids(cc contentCollection) ([]string, error) {
+	var uuidArr []string
 	for _, item := range cc.Items {
 		err := uuidutils.ValidateUUID(item.Uuid)
 		if err != nil {
@@ -59,7 +59,7 @@ func (*fromRequestResolver) resolveUuids(cc *contentCollection) ([]string, error
 	return uuidArr, nil
 }
 
-func (*fromRequestResolver) resolveLastModified(cc *contentCollection) (string, error) {
+func resolveLastModified(cc contentCollection) (string, error) {
 	if _, err := time.Parse(dateTimeFormat, cc.LastModified); err != nil {
 		return "", fmt.Errorf("Invalid lastModified value. Error was: %v", err)
 	}

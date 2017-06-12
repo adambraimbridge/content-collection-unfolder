@@ -31,7 +31,7 @@ func newUnfolder(forwarder fw.Forwarder,
 	producer prod.ContentProducer,
 	whitelist []string) *unfolder {
 
-	u := &unfolder{
+	u := unfolder{
 		forwarder:       forwarder,
 		uuidsAndDateRes: uuidsAndDateRes,
 		contentRes:      contentRes,
@@ -43,12 +43,12 @@ func newUnfolder(forwarder fw.Forwarder,
 		u.whitelist[val] = struct{}{}
 	}
 
-	return u
+	return &u
 }
 
 func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	tid := transactionidutils.GetTransactionIDFromRequest(req)
-	uuid, collectionType := u.extractPathVariables(req)
+	uuid, collectionType := extractPathVariables(req)
 
 	logEntry := log.WithFields(log.Fields{
 		"tid":            tid,
@@ -61,7 +61,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 
 	if err := uuidutils.ValidateUUID(uuid); err != nil {
 		logEntry.Errorf("Invalid uuid in request path: %v", err)
-		u.writeError(writer, http.StatusBadRequest, err)
+		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		logEntry.Errorf("Unable to extract request body: %v", err)
-		u.writeError(writer, http.StatusUnprocessableEntity, err)
+		writeError(writer, http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -77,26 +77,26 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {
 		logEntry.Errorf("Error during forwarding: %v", err)
-		u.writeError(writer, http.StatusInternalServerError, err)
+		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
 	if fwResp.Status != http.StatusOK {
 		logEntry.Warnf("Skip unfolding. Writer returned status [%v]", fwResp.Status)
-		u.writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
+		writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
 
 	if _, ok := u.whitelist[collectionType]; !ok {
 		logEntry.Infof("Skip unfolding. Collection type [%v] not in unfolding whitelist", collectionType)
-		u.writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
+		writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
 
 	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body, fwResp.ResponseBody)
 	if err != nil {
 		logEntry.Errorf("Error while resolving UUIDs: %v", err)
-		u.writeError(writer, http.StatusBadRequest, err)
+		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	contentArr, err := u.contentRes.ResolveContents(uuidsAndDate.UuidArr, tid)
 	if err != nil {
 		logEntry.Errorf("Error while resolving Contents: %v", err)
-		u.writeError(writer, http.StatusInternalServerError, err)
+		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -112,18 +112,18 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	u.producer.Send(tid, uuidsAndDate.LastModified, contentArr)
 }
 
-func (u *unfolder) extractPathVariables(req *http.Request) (string, string) {
+func extractPathVariables(req *http.Request) (string, string) {
 	vars := mux.Vars(req)
 	uuid := vars["uuid"]
 	collectionType := vars["collectionType"]
 	return uuid, collectionType
 }
 
-func (u *unfolder) writeError(writer http.ResponseWriter, status int, err error) {
-	u.writeMap(writer, status, map[string]interface{}{"message": err.Error()})
+func writeError(writer http.ResponseWriter, status int, err error) {
+	writeMap(writer, status, map[string]interface{}{"message": err.Error()})
 }
 
-func (u *unfolder) writeMap(writer http.ResponseWriter, status int, resp map[string]interface{}) {
+func writeMap(writer http.ResponseWriter, status int, resp map[string]interface{}) {
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("Error during json marshalling of response: %v", err)
@@ -131,10 +131,10 @@ func (u *unfolder) writeMap(writer http.ResponseWriter, status int, resp map[str
 		return
 	}
 
-	u.writeResponse(writer, status, jsonResp)
+	writeResponse(writer, status, jsonResp)
 }
 
-func (u *unfolder) writeResponse(writer http.ResponseWriter, status int, data []byte) {
+func writeResponse(writer http.ResponseWriter, status int, data []byte) {
 	writer.WriteHeader(status)
 	_, err := writer.Write(data)
 	if err != nil {

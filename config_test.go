@@ -21,10 +21,10 @@ func TestDefaults(t *testing.T) {
 		assert.NotEmpty(t, configMap["writerHealthURI"])
 		assert.NotEmpty(t, configMap["contentResolverURI"])
 		assert.NotEmpty(t, configMap["contentResolverHealthURI"])
-		assert.NotEmpty(t, configMap["queueAddress"])
 		assert.NotEmpty(t, configMap["writeTopic"])
-		assert.NotEmpty(t, configMap["writeQueue"])
-		assert.Equal(t, "", configMap["authorization"])
+		assert.NotEmpty(t, configMap["kafkaAddr"])
+		assert.NotEmpty(t, configMap["kafkaHostname"])
+		assert.Equal(t, "", configMap["kafkaAuth"])
 
 	}
 

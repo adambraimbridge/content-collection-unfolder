@@ -15,7 +15,7 @@ type routing struct {
 }
 
 func newRouting(unfolder *unfolder, health *healthService) *routing {
-	r := &routing{
+	r := routing{
 		router:        mux.NewRouter(),
 		unfolder:      unfolder,
 		healthService: health,
@@ -24,10 +24,10 @@ func newRouting(unfolder *unfolder, health *healthService) *routing {
 	r.routAdminEndpoints()
 	r.routProdEndpoints()
 
-	return r
+	return &r
 }
 
-func (r *routing) routAdminEndpoints() {
+func (r routing) routAdminEndpoints() {
 	r.router.HandleFunc(healthPath, health.Handler(r.healthService.buildHealthCheck())).Methods(http.MethodGet)
 	r.router.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(r.healthService.gtgCheck)).Methods(http.MethodGet)
 	r.router.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler).Methods(http.MethodGet)
@@ -35,11 +35,11 @@ func (r *routing) routAdminEndpoints() {
 	r.router.HandleFunc(status.PingPath, status.PingHandler).Methods(http.MethodGet)
 }
 
-func (r *routing) routProdEndpoints() {
+func (r routing) routProdEndpoints() {
 	r.router.HandleFunc(unfolderPath, r.unfolder.handle).Methods(http.MethodPut)
 }
 
-func (r *routing) listenAndServe(port string) {
+func (r routing) listenAndServe(port string) {
 	err := http.ListenAndServe(":"+port, r.router)
 	if err != nil {
 		log.Fatalf("Error during ListenAndServe: %v\n", err)

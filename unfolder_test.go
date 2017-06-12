@@ -44,7 +44,7 @@ func TestForwarderError(t *testing.T) {
 	mf, mur, mcr, mcp, u := newUnfolderWithMocks()
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(&forwarder.ForwarderResponse{}, errors.New("Forwarder error"))
+		Return(forwarder.ForwarderResponse{}, errors.New("Forwarder error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -84,7 +84,7 @@ func TestForwarderError(t *testing.T) {
 func TestForwarderNon200Response(t *testing.T) {
 	mf, mur, mcr, mcp, u := newUnfolderWithMocks()
 
-	fwResp := &forwarder.ForwarderResponse{http.StatusUnprocessableEntity, []byte(errorJson)}
+	fwResp := forwarder.ForwarderResponse{http.StatusUnprocessableEntity, []byte(errorJson)}
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(fwResp, nil)
 
@@ -131,7 +131,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 	mf, mur, mcr, mcp, u := newUnfolderWithMocks()
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(&forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -155,11 +155,11 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 func TestUuidResolverError(t *testing.T) {
 	mf, mur, mcr, mcp, u := newUnfolderWithMocks()
 
-	fwResp := &forwarder.ForwarderResponse{http.StatusOK, []byte{}}
+	fwResp := forwarder.ForwarderResponse{http.StatusOK, []byte{}}
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(fwResp, nil)
 	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(&resolver.UuidsAndDate{}, errors.New("Uuid resolver error"))
+		Return(resolver.UuidsAndDate{}, errors.New("Uuid resolver error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -191,10 +191,10 @@ func TestUuidResolverError(t *testing.T) {
 func TestContentResolverError(t *testing.T) {
 	mf, mur, mcr, mcp, u := newUnfolderWithMocks()
 
-	fwResp := &forwarder.ForwarderResponse{http.StatusOK, []byte{}}
+	fwResp := forwarder.ForwarderResponse{http.StatusOK, []byte{}}
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(fwResp, nil)
-	uuidsAndDate := &resolver.UuidsAndDate{[]string{firstItemUuid, secondItemUuid}, lastModified}
+	uuidsAndDate := resolver.UuidsAndDate{[]string{firstItemUuid, secondItemUuid}, lastModified}
 	mur.On("Resolve", mock.Anything, mock.Anything).
 		Return(uuidsAndDate, nil)
 	mcr.On("ResolveContents", mock.Anything, mock.Anything).
@@ -230,10 +230,10 @@ func TestContentResolverError(t *testing.T) {
 func TestAllOk(t *testing.T) {
 	mf, mur, mcr, mcp, u := newUnfolderWithMocks()
 
-	fwResp := &forwarder.ForwarderResponse{http.StatusOK, []byte{}}
+	fwResp := forwarder.ForwarderResponse{http.StatusOK, []byte{}}
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(fwResp, nil)
-	uuidsAndDate := &resolver.UuidsAndDate{[]string{firstItemUuid, secondItemUuid}, lastModified}
+	uuidsAndDate := resolver.UuidsAndDate{[]string{firstItemUuid, secondItemUuid}, lastModified}
 	mur.On("Resolve", mock.Anything, mock.Anything).
 		Return(uuidsAndDate, nil)
 	contentArr := []map[string]interface{}{
@@ -278,8 +278,7 @@ func TestAllOk(t *testing.T) {
 func TestMarshallingErrorIs500(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
-	u := &unfolder{}
-	u.writeMap(recorder, http.StatusOK, map[string]interface{}{"dude, what?": func() {}})
+	writeMap(recorder, http.StatusOK, map[string]interface{}{"dude, what?": func() {}})
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 }
@@ -310,18 +309,18 @@ type mockForwarder struct {
 	mock.Mock
 }
 
-func (mf *mockForwarder) Forward(tid string, uuid string, collectionType string, reqBody []byte) (*forwarder.ForwarderResponse, error) {
+func (mf *mockForwarder) Forward(tid string, uuid string, collectionType string, reqBody []byte) (forwarder.ForwarderResponse, error) {
 	args := mf.Called(tid, uuid, collectionType, reqBody)
-	return args.Get(0).(*forwarder.ForwarderResponse), args.Error(1)
+	return args.Get(0).(forwarder.ForwarderResponse), args.Error(1)
 }
 
 type mockUuidResolver struct {
 	mock.Mock
 }
 
-func (mur *mockUuidResolver) Resolve(reqData []byte, respData []byte) (*resolver.UuidsAndDate, error) {
+func (mur *mockUuidResolver) Resolve(reqData []byte, respData []byte) (resolver.UuidsAndDate, error) {
 	args := mur.Called(reqData, respData)
-	return args.Get(0).(*resolver.UuidsAndDate), args.Error(1)
+	return args.Get(0).(resolver.UuidsAndDate), args.Error(1)
 }
 
 type mockContentResolver struct {
