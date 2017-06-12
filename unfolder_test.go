@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"github.com/Financial-Times/content-collection-unfolder/forwarder"
 	"github.com/Financial-Times/content-collection-unfolder/resolver"
@@ -9,29 +8,16 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 )
 
 const (
-	whitelistedCollection = "content-package"
-	ignoredCollection     = "story-package"
-
-	invalidUuid = "1234"
-	validUuid   = "45163790-eec9-11e6-abbc-ee7d9c5b3b90"
-
-	inputFile = "content-collection.json"
-
-	errorJson = "{\"msg\":\"error\"}"
-
-	firstItemUuid  = "d4986a58-de3b-11e6-86ac-f253db7791c6"
-	secondItemUuid = "d4986a58-de3b-11e6-86ac-f253db7791c6"
-	lastModified   = "2017-01-31T15:33:21.687Z"
+	ignoredCollection = "story-package"
+	invalidUuid       = "1234"
+	errorJson         = "{\"msg\":\"error\"}"
 )
 
 func TestInvalidUuid(t *testing.T) {
@@ -65,7 +51,7 @@ func TestForwarderError(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, validUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -79,7 +65,7 @@ func TestForwarderError(t *testing.T) {
 			return true
 		}),
 		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, validUuid, actualUuid)
+			assert.Equal(t, collectionUuid, actualUuid)
 			return true
 		}),
 		mock.MatchedBy(func(actualCollectionType string) bool {
@@ -107,7 +93,7 @@ func TestForwarderNon200Response(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, validUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -125,7 +111,7 @@ func TestForwarderNon200Response(t *testing.T) {
 			return true
 		}),
 		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, validUuid, actualUuid)
+			assert.Equal(t, collectionUuid, actualUuid)
 			return true
 		}),
 		mock.MatchedBy(func(actualCollectionType string) bool {
@@ -152,7 +138,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, ignoredCollection, validUuid, body, tid)
+	req := buildRequest(t, server.URL, ignoredCollection, collectionUuid, body, tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -180,7 +166,7 @@ func TestUuidResolverError(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, validUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -219,7 +205,7 @@ func TestContentResolverError(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, validUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -263,7 +249,7 @@ func TestAllOk(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, validUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -312,37 +298,6 @@ func startTestServer(u *unfolder) *httptest.Server {
 	router.HandleFunc(unfolderPath, u.handle).Methods(http.MethodPut)
 
 	return httptest.NewServer(router)
-}
-
-func buildRequest(t *testing.T, serverUrl string, collection string, uuid string, body []byte, tid string) *http.Request {
-	req, err := http.NewRequest(http.MethodPut, serverUrl+buildPath(t, collection, uuid), bytes.NewBuffer(body))
-	assert.NoError(t, err)
-
-	req.Header.Add(transactionidutils.TransactionIDHeader, tid)
-
-	return req
-}
-
-func buildPath(t *testing.T, collectionType string, uuid string) string {
-	pathWithCollection := strings.Replace(unfolderPath, "{collectionType}", collectionType, 1)
-	assert.NotEqual(t, unfolderPath, pathWithCollection)
-
-	pathWithCollectionAndUuid := strings.Replace(pathWithCollection, "{uuid}", uuid, 1)
-	assert.NotEqual(t, pathWithCollection, pathWithCollectionAndUuid)
-
-	return pathWithCollectionAndUuid
-}
-
-func readTestFile(t *testing.T, fileName string) []byte {
-	file, err := os.Open("test-resources/" + fileName)
-	assert.NoError(t, err)
-
-	defer file.Close()
-	buf := bytes.NewBuffer(nil)
-	_, err = io.Copy(buf, file)
-	assert.NoError(t, err)
-
-	return buf.Bytes()
 }
 
 func verifyResponse(t *testing.T, expectedStatus int, expectedTid string, resp *http.Response) {
