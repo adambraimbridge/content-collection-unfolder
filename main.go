@@ -1,80 +1,81 @@
 package main
 
 import (
-	health "github.com/Financial-Times/go-fthealth/v1_1"
-	status "github.com/Financial-Times/service-status-go/httphandlers"
+	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
+	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	res "github.com/Financial-Times/content-collection-unfolder/resolver"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
+	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"time"
 )
 
 const appDescription = "UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. If a 200 answer is received from the writer, it retrieves the elements in the collection from the document-store-api and places them in Kafka on the Post Publication topic so that notifications will be created for them."
 
 func main() {
 	app := cli.App("content-collection-unfolder", appDescription)
-
-	appSystemCode := app.String(cli.StringOpt{
-		Name:   "app-system-code",
-		Value:  "content-collection-unfolder",
-		Desc:   "System Code of the application",
-		EnvVar: "APP_SYSTEM_CODE",
-	})
-
-	appName := app.String(cli.StringOpt{
-		Name:   "app-name",
-		Value:  "Content Collection Unfolder",
-		Desc:   "Application name",
-		EnvVar: "APP_NAME",
-	})
-
-	port := app.String(cli.StringOpt{
-		Name:   "port",
-		Value:  "8080",
-		Desc:   "Port to listen on",
-		EnvVar: "APP_PORT",
-	})
+	sc := createServiceConfiguration(app)
 
 	log.SetLevel(log.InfoLevel)
-	log.Infof("[Startup] content-collection-unfolder is starting ")
 
 	app.Action = func() {
-		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
+		log.Infof("[Startup] content-collection-unfolder is starting with service config %v", sc.toMap())
 
-		go func() {
-			serveAdminEndpoints(*appSystemCode, *appName, *port)
-		}()
+		client := setupHttpClient()
+		producer := setupMessageProducer(sc, client)
 
-		// todo: insert app code here
+		unfolder := newUnfolder(
+			fw.NewForwarder(client, *sc.writerURI),
+			res.NewUuidResolver(),
+			res.NewContentResolver(client, *sc.contentResolverURI),
+			prod.NewContentProducer(producer),
+			*sc.unfoldingWhitelist,
+		)
+		healthService := newHealthService(&healthConfig{
+			appDesc:                  appDescription,
+			port:                     *sc.appPort,
+			appSystemCode:            *sc.appSystemCode,
+			appName:                  *sc.appName,
+			writerHealthURI:          *sc.writerHealthURI,
+			contentResolverHealthURI: *sc.contentResolverHealthURI,
+			producer:                 producer,
+			client:                   client,
+		})
 
-		waitForSignal()
+		routing := newRouting(unfolder, healthService)
+		routing.listenAndServe(*sc.appPort)
 	}
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Errorf("App could not start, error=[%s]\n", err)
-		return
+		log.Fatalf("App could not start, error=[%v]\n", err)
 	}
 }
 
-func serveAdminEndpoints(appSystemCode string, appName string, port string) {
-	healthService := newHealthService(&healthConfig{appSystemCode: appSystemCode, appName: appName, port: port})
-
-	serveMux := http.NewServeMux()
-
-	hc := health.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.checks}
-	serveMux.HandleFunc(healthPath, health.Handler(hc))
-	serveMux.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
-	serveMux.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
-
-	if err := http.ListenAndServe(":"+port, serveMux); err != nil {
-		log.Fatalf("Unable to start: %v", err)
+func setupHttpClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			MaxIdleConnsPerHost:   20,
+			TLSHandshakeTimeout:   3 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
 	}
 }
 
-func waitForSignal() {
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
+func setupMessageProducer(sc *serviceConfig, client *http.Client) producer.MessageProducer {
+	config := producer.MessageProducerConfig{
+		Addr:          *sc.kafkaAddr,
+		Topic:         *sc.writeTopic,
+		Queue:         *sc.kafkaHostname,
+		Authorization: *sc.kafkaAuth,
+	}
+
+	return producer.NewMessageProducerWithHTTPClient(config, client)
 }
