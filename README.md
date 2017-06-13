@@ -1,21 +1,21 @@
 # content-collection-unfolder
-_Should be the same as the github repo name but it isn't always._
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/content-collection-unfolder/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/content-collection-unfolder/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/content-collection-unfolder)](https://goreportcard.com/report/github.com/Financial-Times/content-collection-unfolder) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/content-collection-unfolder/badge.svg)](https://coveralls.io/github/Financial-Times/content-collection-unfolder)
 
 ## Introduction
-
-_What is this service and what is it for? What other services does it depend on_
 
 UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. 
 If a 200 answer is received from the writer, it retrieves the elements in the collection from 
 the document-store-api and places them in Kafka on the Post Publication topic so that notifications 
 will be created for them.
 
+Dependencies are:
+1. content-collection-rw-neo4j
+2. document-store-api
+3. kafka
+
 ## Installation
       
-_How can I install it_
-
 Download the source code, dependencies and test dependencies:
 
         go get -u github.com/kardianos/govendor
@@ -25,7 +25,6 @@ Download the source code, dependencies and test dependencies:
         go build .
 
 ## Running locally
-_How can I run it_
 
 1. Run the tests and install the binary:
 
@@ -39,74 +38,90 @@ _How can I run it_
 
 Options:
 
-        --app-system-code="content-collection-unfolder"            System Code of the application ($APP_SYSTEM_CODE)
-        --app-name="Content Collection Unfolder"                   Application name ($APP_NAME)
-        --port="8080"                                              Port to listen on ($APP_PORT)
+        --app-system-code="content-collection-unfolder"                                          System Code of the application ($APP_SYSTEM_CODE)
+        --app-name="Content Collection Unfolder"                                                 Application name ($APP_NAME)
+        --app-port="8080"                                                                        Port to listen on ($APP_PORT)
+        --unfolding-whitelist=["content-package"]                                                Collection types for which the unfolding process should be performed ($UNFOLDING_WHITELIST)
+        --writer-uri="http://localhost:8080/__content-collection-rw-neo4j/content-collection/"   URI of the Writer ($WRITER_URI)
+        --writer-health-uri="http://localhost:8080/__content-collection-rw-neo4j/__health"       URI of the Writer health endpoint ($WRITER_HEALTH_URI)
+        --content-resolver-uri="http://localhost:8080/__document-store-api/content/"             URI of the Content Resolver ($CONTENT_RESOLVER_URI)
+        --content-resolver-health-uri="http://localhost:8080/__document-store-api/__health"      URI of the Content Resolver health endpoint ($CONTENT_RESOLVER_HEALTH_URI)
+        --kafka-write-topic="PostPublicationEvents"                                              The topic to write the messages to ($Q_WRITE_TOPIC)
+        --kafka-proxy-address="http://localhost:8080"                                            Addresses of the kafka proxy ($Q_ADDR)
+        --kafka-proxy-hostname="kafka"                                                           The hostname of the kafka proxy (for hostname based routing) ($Q_HOSTNAME)
+        --kafka-authorization=""                                                                 Authorization for kafka ($Q_AUTHORIZATION)
+        
         
 3. Test:
 
-    1. Either using curl:
+Create a file with the following content collection contents:
 
-            curl http://localhost:8080/people/143ba45c-2fb3-35bc-b227-a6ed80b5c517 | json_pp
+      {
+        "uuid": "45163790-eec9-11e6-abbc-ee7d9c5b3b90",
+        "items": [
+          {
+            "uuid": "d4986a58-de3b-11e6-86ac-f253db7791c6"
+          },
+          {
+            "uuid": "d9b4c4c6-dcc6-11e6-86ac-f253db7791c6"
+          }
+        ],
+        "publishReference": "tdi23377744",
+        "lastModified": "2017-01-31T15:33:21.687Z"
+      }
 
-    1. Or using [httpie](https://github.com/jkbrzt/httpie):
 
-            http GET http://localhost:8080/people/143ba45c-2fb3-35bc-b227-a6ed80b5c517
+Assuming that the file you just is `cc.json`, you can run the following curl command to test the unfolder
+
+      curl -X PUT --data "@cc.json"  localhost:8080/content-collection/content-package/45163790-eec9-11e6-abbc-ee7d9c5b3b90
+
+If you've setup everything correctly, you should receive a `200` response. You can also watch the app logs for errors as the
+unfolder will return a `200` even if kafka related processing fails.
 
 ## Build and deployment
 _How can I build and deploy it (lots of this will be links out as the steps will be common)_
 
-* Built by Docker Hub on merge to master: [coco/content-collection-unfolder](https://hub.docker.com/r/coco/content-collection-unfolder/)
 * CI provided by CircleCI: [content-collection-unfolder](https://circleci.com/gh/Financial-Times/content-collection-unfolder)
+* Built by Docker Hub on merge to master or on any pushed tag: [coco/content-collection-unfolder](https://hub.docker.com/r/coco/content-collection-unfolder/)
 
 ## Service endpoints
-_What are the endpoints offered by the service_
 
-e.g.
-### GET
+### PUT
 
 Using curl:
 
-    curl http://localhost:8080/people/143ba45c-2fb3-35bc-b227-a6ed80b5c517 | json_pp`
+    curl -X PUT --data "@cc.json"  localhost:8080/content-collection/content-package/45163790-eec9-11e6-abbc-ee7d9c5b3b90
 
-Or using [httpie](https://github.com/jkbrzt/httpie):
+The expected response is a simple `200` with no response body. In case a error takes place, a json response body will be provided,
+similar to the following example:
 
-    http GET http://localhost:8080/people/143ba45c-2fb3-35bc-b227-a6ed80b5c517
+    {"msg\":"Something bad happened"}
+    
+As a rule of thumb, the unfolder will return the exact response status code and body received from the **content-collection-neo4j-rw** app in
+case a non `200` response is received.
 
-The expected response will contain information about the person, and the organisations they are connected to (via memberships).
+The flow of the unfolder is the following:
 
-Based on the following [google doc](https://docs.google.com/document/d/1SC4Uskl-VD78y0lg5H2Gq56VCmM4OFHofZM-OvpsOFo/edit#heading=h.qjo76xuvpj83).
-
-
-## Utility endpoints
-_Endpoints that are there for support or testing, e.g read endpoints on the writers_
+1. the PUT request is received and is forwarded to the **content-collection-neo4j-rw** 
+2. the response from the RW app is evaluated, if it is not a `200` response, the writer response is sent to the unfolder client
+3. in case the collection type is not one that needs unfolding (at the moment only `content-package` is unfolded), a `200` response is returned
+4. all the UUIDs from content collection as resolved using the **document-store-api**
+5. for each piece of content retrieved from the DSAPI, a new message is created and placed on the configured **kafka** topic
 
 ## Healthchecks
 Admin endpoints are:
 
 `/__gtg`
 
-`/__health`
-
 `/__build-info`
 
-_These standard endpoints do not need to be specifically documented._
+`/__ping`
 
-_This section *should* however explain what checks are done to determine health and gtg status._
+`/__health`
 
-There are several checks performed:
+There are following checks are performed when the `/__health` is called:
+1. **content-collection-neo4j-rw** connectivity check
+2. **document-store-api** connectivity check
+3. **kafka** connectivity check and topic existence check
 
-_e.g._
-* Checks that a connection can be made to Neo4j, using the neo4j url supplied as a parameter in service startup.
-
-## Other information
-_Anything else you want to add._
-
-_e.g. (NB: this example may be something we want to extract as it's probably common to a lot of services)_
-
-### Logging
-
-* The application uses [logrus](https://github.com/Sirupsen/logrus); the log file is initialised in [main.go](main.go).
-* Logging requires an `env` app parameter, for all environments other than `local` logs are written to file.
-* When running locally, logs are written to console. If you want to log locally to file, you need to pass in an env parameter that is != `local`.
-* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.
+The `/__gtg` endpoint will return a `200` in case all above health checks are successful.  
