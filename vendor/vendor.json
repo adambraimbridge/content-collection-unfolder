@@ -9,10 +9,12 @@
 			"revisionTime": "2017-05-25T09:50:41Z"
 		},
 		{
-			"checksumSHA1": "ER4UrILGiuMyF5AY4jfLCpgG148=",
+			"checksumSHA1": "rMMNx455bqW6N94yWCCqbt65/pc=",
 			"path": "github.com/Financial-Times/message-queue-go-producer/producer",
-			"revision": "163efbf93f1a2ba839b317d26e37426bcfa3850a",
-			"revisionTime": "2017-03-20T10:55:12Z"
+			"revision": "e0d20e2c97fff205138d33c3dee9347878640b5e",
+			"revisionTime": "2017-05-26T06:27:13Z",
+			"version": "0.2.0-xp-remove-kafka-topic-check-rc.1",
+			"versionExact": "0.2.0-xp-remove-kafka-topic-check-rc.1"
 		},
 		{
 			"checksumSHA1": "zFas12riRjQgyOiiJKgnaB0zwjc=",
