@@ -76,7 +76,7 @@ func (service *healthService) producerCheck() health.Check {
 	return health.Check{
 		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
 		Name:             "Message producer health check",
-		PanicGuide:       "https://dewey.ft.com/document-store-api.html",
+		PanicGuide:       "https://dewey.ft.com/kafka-proxy.html",
 		Severity:         1,
 		TechnicalSummary: "Checks if Kafka can be accessed through http proxy",
 		Checker: func() (string, error) {
