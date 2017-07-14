@@ -9,10 +9,12 @@
 			"revisionTime": "2017-05-25T09:50:41Z"
 		},
 		{
-			"checksumSHA1": "ER4UrILGiuMyF5AY4jfLCpgG148=",
+			"checksumSHA1": "rMMNx455bqW6N94yWCCqbt65/pc=",
 			"path": "github.com/Financial-Times/message-queue-go-producer/producer",
-			"revision": "163efbf93f1a2ba839b317d26e37426bcfa3850a",
-			"revisionTime": "2017-03-20T10:55:12Z"
+			"revision": "0bb065111416c0de78db51acb926ba3a3ae3c4e2",
+			"revisionTime": "2017-06-22T11:18:49Z",
+			"version": "0.2.0",
+			"versionExact": "0.2.0"
 		},
 		{
 			"checksumSHA1": "zFas12riRjQgyOiiJKgnaB0zwjc=",
