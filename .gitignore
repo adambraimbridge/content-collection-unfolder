@@ -1,6 +1,6 @@
 *.iml
 .idea
-content-collection-unfolder*
+/content-collection-unfolder*
 vendor/*/
 .project
 .vscode
