@@ -1,0 +1,20 @@
+# Default values for content-collection-unfolder.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+service:
+  name: "" # The name of the service, should be defined in the specific app-configs folder.
+  hasHealthcheck: "true"
+replicaCount: 2
+image:
+  repository: coco/content-collection-unfolder
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    memory: 64Mi
+env:
+  UNFOLDING_WHITELIST: ""
+  WRITER_URI: ""
+  WRITER_HEALTH_URI: ""
+  CONTENT_RESOLVER_URI: ""
+  CONTENT_RESOLVER_HEALTH_URI: ""
+  Q_WRITE_TOPIC: ""
