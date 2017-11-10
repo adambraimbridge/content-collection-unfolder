@@ -2,15 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/Financial-Times/content-collection-unfolder/differ"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
 	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	"github.com/Financial-Times/content-collection-unfolder/relations"
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"io/ioutil"
-	"net/http"
 )
 
 const (
@@ -18,25 +21,31 @@ const (
 )
 
 type unfolder struct {
-	forwarder       fw.Forwarder
-	uuidsAndDateRes res.UuidsAndDateResolver
-	contentRes      res.ContentResolver
-	producer        prod.ContentProducer
-	whitelist       map[string]struct{}
+	forwarder         fw.Forwarder
+	uuidsAndDateRes   res.UuidsAndDateResolver
+	relationsResolver relations.RelationsResolver
+	collectionsDiffer differ.CollectionsDiffer
+	contentRes        res.ContentResolver
+	producer          prod.ContentProducer
+	whitelist         map[string]struct{}
 }
 
 func newUnfolder(forwarder fw.Forwarder,
 	uuidsAndDateRes res.UuidsAndDateResolver,
+	relationsResolver relations.RelationsResolver,
+	collectionsDiffer differ.CollectionsDiffer,
 	contentRes res.ContentResolver,
 	producer prod.ContentProducer,
 	whitelist []string) *unfolder {
 
 	u := unfolder{
-		forwarder:       forwarder,
-		uuidsAndDateRes: uuidsAndDateRes,
-		contentRes:      contentRes,
-		producer:        producer,
-		whitelist:       map[string]struct{}{},
+		forwarder:         forwarder,
+		uuidsAndDateRes:   uuidsAndDateRes,
+		relationsResolver: relationsResolver,
+		collectionsDiffer: collectionsDiffer,
+		contentRes:        contentRes,
+		producer:          producer,
+		whitelist:         map[string]struct{}{},
 	}
 
 	for _, val := range whitelist {
@@ -73,6 +82,22 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body)
+	if err != nil {
+		logEntry.Errorf("Error while resolving UUIDs: %v", err)
+		writeError(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	oldCollectionRelations, err := u.relationsResolver.Resolve(uuid, tid)
+	if err != nil {
+		logEntry.Errorf("Error while fetching old collection relations: ", err)
+		writeError(writer, http.StatusInternalServerError, err)
+		return
+	}
+
+	diffUuids, isDeleted := u.collectionsDiffer.Diff(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
+
 	logEntry.Info("Forwarding request to writer")
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {
@@ -93,15 +118,8 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body, fwResp.ResponseBody)
-	if err != nil {
-		logEntry.Errorf("Error while resolving UUIDs: %v", err)
-		writeError(writer, http.StatusBadRequest, err)
-		return
-	}
-
-	logEntry.Infof("Resolving contents for following UUIDs: %v", uuidsAndDate.UuidArr)
-	contentArr, err := u.contentRes.ResolveContents(uuidsAndDate.UuidArr, tid)
+	logEntry.Infof("Resolving contents for following UUIDs: %v", diffUuids)
+	resolvedContentArr, err := u.contentRes.ResolveContents(diffUuids, tid)
 	if err != nil {
 		logEntry.Errorf("Error while resolving Contents: %v", err)
 		writeError(writer, http.StatusInternalServerError, err)
@@ -109,7 +127,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	logEntry.Info("Producing Kafka messages for resolved contents")
-	u.producer.Send(tid, uuidsAndDate.LastModified, contentArr)
+	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr, isDeleted)
 }
 
 func extractPathVariables(req *http.Request) (string, string) {

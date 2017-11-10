@@ -1,19 +1,23 @@
 package main
 
 import (
-	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
-	prod "github.com/Financial-Times/content-collection-unfolder/producer"
-	res "github.com/Financial-Times/content-collection-unfolder/resolver"
-	"github.com/Financial-Times/message-queue-go-producer/producer"
-	log "github.com/Sirupsen/logrus"
-	"github.com/jawher/mow.cli"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/Financial-Times/content-collection-unfolder/differ"
+	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
+	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	"github.com/Financial-Times/content-collection-unfolder/relations"
+	res "github.com/Financial-Times/content-collection-unfolder/resolver"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
+	log "github.com/Sirupsen/logrus"
+	"github.com/jawher/mow.cli"
 )
 
 const appDescription = "UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. If a 200 answer is received from the writer, it retrieves the elements in the collection from the document-store-api and places them in Kafka on the Post Publication topic so that notifications will be created for them."
+const ccRelationsResolverPlaceholderUri = "/contentcollection/{uuid}/relations"
 
 func main() {
 	app := cli.App("content-collection-unfolder", appDescription)
@@ -30,6 +34,8 @@ func main() {
 		unfolder := newUnfolder(
 			fw.NewForwarder(client, *sc.writerURI),
 			res.NewUuidResolver(),
+			relations.NewDefaultRelationsResolver(client, ccRelationsResolverPlaceholderUri),
+			differ.NewDefaultCollectionsDiffer(),
 			res.NewContentResolver(client, *sc.contentResolverURI),
 			prod.NewContentProducer(producer),
 			*sc.unfoldingWhitelist,

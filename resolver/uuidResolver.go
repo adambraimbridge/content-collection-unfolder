@@ -3,14 +3,16 @@ package resolver
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/uuid-utils-go"
 	"time"
+	"net/http"
+
+	"github.com/Financial-Times/uuid-utils-go"
 )
 
 const dateTimeFormat = "2006-01-02T15:04:05.000Z0700"
 
 type UuidsAndDateResolver interface {
-	Resolve(reqData []byte, respData []byte) (UuidsAndDate, error)
+	Resolve(reqData []byte) (UuidsAndDate, error)
 }
 
 type UuidsAndDate struct {
@@ -19,20 +21,22 @@ type UuidsAndDate struct {
 }
 
 type fromRequestResolver struct {
+	httpClient      *http.Client
+	relationsApiUrl string
 }
 
 func NewUuidResolver() UuidsAndDateResolver {
 	return &fromRequestResolver{}
 }
 
-func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (UuidsAndDate, error) {
+func (r *fromRequestResolver) Resolve(reqData []byte) (UuidsAndDate, error) {
 	cc := contentCollection{}
 	err := json.Unmarshal(reqData, &cc)
 	if err != nil {
 		return UuidsAndDate{}, fmt.Errorf("Unmarshalling error: %v", err)
 	}
 
-	uuidArr, err := resolveUuids(cc)
+	uuidArr, err := r.resolveUuids(cc)
 	if err != nil {
 		return UuidsAndDate{}, err
 	}
@@ -45,7 +49,7 @@ func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (UuidsAnd
 	return UuidsAndDate{uuidArr, lastModified}, nil
 }
 
-func resolveUuids(cc contentCollection) ([]string, error) {
+func (r *fromRequestResolver) resolveUuids(cc contentCollection) ([]string, error) {
 	var uuidArr []string
 	for _, item := range cc.Items {
 		err := uuidutils.ValidateUUID(item.Uuid)

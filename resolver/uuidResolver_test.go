@@ -12,7 +12,7 @@ func TestValidInput(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection.json")
 
 	r := NewUuidResolver()
-	uuidsAndDate, err := r.Resolve(ccBytes, []byte{})
+	uuidsAndDate, err := r.Resolve(ccBytes)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "2017-01-31T15:33:21.687Z", uuidsAndDate.LastModified)
@@ -25,7 +25,7 @@ func TestEmptyItems(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-empty-items.json")
 
 	r := NewUuidResolver()
-	uuidsAndDate, err := r.Resolve(ccBytes, []byte{})
+	uuidsAndDate, err := r.Resolve(ccBytes)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(uuidsAndDate.UuidArr))
@@ -35,7 +35,7 @@ func TestNoItems(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-no-items.json")
 
 	r := NewUuidResolver()
-	uuidsAndDate, err := r.Resolve(ccBytes, []byte{})
+	uuidsAndDate, err := r.Resolve(ccBytes)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(uuidsAndDate.UuidArr))
@@ -45,7 +45,7 @@ func TestNoLastModified(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-no-lastModified.json")
 
 	r := NewUuidResolver()
-	_, err := r.Resolve(ccBytes, []byte{})
+	_, err := r.Resolve(ccBytes)
 
 	assert.Error(t, err)
 }
@@ -54,7 +54,7 @@ func TestNoUuid(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-no-uuid.json")
 
 	r := NewUuidResolver()
-	_, err := r.Resolve(ccBytes, []byte{})
+	_, err := r.Resolve(ccBytes)
 
 	assert.Error(t, err)
 }
@@ -63,7 +63,7 @@ func TestInvalidLastModified(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-invalid-lastModified.json")
 
 	r := NewUuidResolver()
-	_, err := r.Resolve(ccBytes, []byte{})
+	_, err := r.Resolve(ccBytes)
 
 	assert.Error(t, err)
 }
@@ -72,7 +72,7 @@ func TestInvalidUuid(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-invalid-uuid.json")
 
 	r := NewUuidResolver()
-	_, err := r.Resolve(ccBytes, []byte{})
+	_, err := r.Resolve(ccBytes)
 
 	assert.Error(t, err)
 }

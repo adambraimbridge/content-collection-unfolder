@@ -3,14 +3,15 @@ package producer
 import (
 	"encoding/json"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 const timeFormat = "2006-01-02T15:04:05.000Z0700"
@@ -26,7 +27,7 @@ func TestHeadersAndBodyAreOk(t *testing.T) {
 	uuid := gouuid.NewV4().String()
 	contentArr := map[string]interface{}{"uuid": uuid}
 
-	cp.Send(tid, lastModified, []map[string]interface{}{contentArr})
+	cp.Send(tid, lastModified, []map[string]interface{}{contentArr}, map[string]bool{uuid: false})
 
 	mp.AssertCalled(t, "SendMessage",
 		mock.MatchedBy(func(key string) bool {
@@ -67,10 +68,12 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 	).Times(2).Return(nil)
 
 	cp := NewContentProducer(mp)
+	uuid1 := gouuid.NewV4().String()
+	uuid2 := gouuid.NewV4().String()
 
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{"uuid": gouuid.NewV4().String()}, {"uuid": gouuid.NewV4().String()}})
+		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}}, map[string]bool{uuid1: false, uuid2: false})
 
 	mp.AssertNumberOfCalls(t, "SendMessage", 2)
 
@@ -85,7 +88,7 @@ func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{}, {"uuid": 123}, {"uuid": "1234"}})
+		[]map[string]interface{}{{}, {"uuid": 123}, {"uuid": "1234"}}, map[string]bool{"123": false, "1234": false})
 
 	mp.AssertNotCalled(t, "SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message"))
 }
@@ -96,13 +99,17 @@ func TestSendFailureDoesNotStopProducer(t *testing.T) {
 
 	cp := NewContentProducer(mp)
 
-	contentArr := []map[string]interface{}{{"uuid": gouuid.NewV4().String()}, {"uuid": gouuid.NewV4().String()}}
+	uuid1 := gouuid.NewV4().String()
+	uuid2 := gouuid.NewV4().String()
+
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		contentArr)
+		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}},
+		map[string]bool{uuid1: false, uuid2: false})
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		contentArr)
+		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}},
+		map[string]bool{uuid1: false, uuid2: false})
 
 	mp.AssertNumberOfCalls(t, "SendMessage", 4)
 }
@@ -112,9 +119,12 @@ func TestMarshallErrorsCauseSkip(t *testing.T) {
 
 	cp := NewContentProducer(mp)
 
+	uuid1 := gouuid.NewV4().String()
+
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{"uuid": gouuid.NewV4().String(), "dude, what?": func() {}}})
+		[]map[string]interface{}{{"uuid": uuid1, "dude, what?": func() {}}},
+		map[string]bool{uuid1: false, "dude, what?": false})
 
 	mp.AssertNotCalled(t, "SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message"))
 }
