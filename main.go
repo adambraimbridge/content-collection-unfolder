@@ -17,7 +17,6 @@ import (
 )
 
 const appDescription = "UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. If a 200 answer is received from the writer, it retrieves the elements in the collection from the document-store-api and places them in Kafka on the Post Publication topic so that notifications will be created for them."
-const ccRelationsResolverPlaceholderUri = "/contentcollection/{uuid}/relations"
 
 func main() {
 	app := cli.App("content-collection-unfolder", appDescription)
@@ -34,7 +33,7 @@ func main() {
 		unfolder := newUnfolder(
 			fw.NewForwarder(client, *sc.writerURI),
 			res.NewUuidResolver(),
-			relations.NewDefaultRelationsResolver(client, ccRelationsResolverPlaceholderUri),
+			relations.NewDefaultRelationsResolver(client, *sc.contentCollectionRelationsURI),
 			differ.NewDefaultCollectionsDiffer(),
 			res.NewContentResolver(client, *sc.contentResolverURI),
 			prod.NewContentProducer(producer),
