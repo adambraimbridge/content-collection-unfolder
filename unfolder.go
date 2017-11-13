@@ -118,6 +118,8 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	diffUuids = append(diffUuids, oldCollectionRelations.ContainedIn)
+
 	logEntry.Infof("Resolving contents for following UUIDs: %v", diffUuids)
 	resolvedContentArr, err := u.contentRes.ResolveContents(diffUuids, tid)
 	if err != nil {
