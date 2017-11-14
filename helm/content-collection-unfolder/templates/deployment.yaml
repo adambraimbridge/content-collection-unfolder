@@ -32,7 +32,9 @@ spec:
         - name: CONTENT_RESOLVER_URI 
           value: {{ .Values.env.CONTENT_RESOLVER_URI }} 
         - name: CONTENT_RESOLVER_HEALTH_URI 
-          value: {{ .Values.env.CONTENT_RESOLVER_HEALTH_URI }} 
+          value: {{ .Values.env.CONTENT_RESOLVER_HEALTH_URI }}
+        - name: CONTENT_COLLECTION_RELATIONS_URI
+          value: {{ .Values.env.CONTENT_COLLECTION_RELATIONS_URI }}
         - name: Q_WRITE_TOPIC 
           value: {{ .Values.env.Q_WRITE_TOPIC }} 
         - name: Q_ADDR 
