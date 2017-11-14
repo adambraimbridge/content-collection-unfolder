@@ -17,9 +17,10 @@ func TestValidInput(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "2017-01-31T15:33:21.687Z", uuidsAndDate.LastModified)
-	assert.Equal(t, 2, len(uuidsAndDate.UuidArr))
+	assert.Equal(t, 3, len(uuidsAndDate.UuidArr))
+	assert.Contains(t, uuidsAndDate.UuidArr, "aaaac4c6-dcc6-11e6-86ac-f253db7791c6")
+	assert.Contains(t, uuidsAndDate.UuidArr, "bbbbc4c6-dcc6-11e6-86ac-f253db7791c6")
 	assert.Contains(t, uuidsAndDate.UuidArr, "d4986a58-de3b-11e6-86ac-f253db7791c6")
-	assert.Contains(t, uuidsAndDate.UuidArr, "d9b4c4c6-dcc6-11e6-86ac-f253db7791c6")
 }
 
 func TestEmptyItems(t *testing.T) {
