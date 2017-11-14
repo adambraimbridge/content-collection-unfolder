@@ -269,10 +269,10 @@ func startRouting(
 	}
 	routing := newRouting(
 		newUnfolder(
-			fw.NewForwarder(client, writerServer.URL+strings.Split(writerPath, "/{")[0]),
 			res.NewUuidResolver(),
 			relations.NewDefaultRelationsResolver(client, relationsResolverServer.URL+relationsResolverPath),
 			differ.NewDefaultCollectionsDiffer(),
+			fw.NewForwarder(client, writerServer.URL+strings.Split(writerPath, "/{")[0]),
 			res.NewContentResolver(client, contentResolverServer.URL+contentResolverPath),
 			prod.NewContentProducer(messageProducer),
 			[]string{whitelistedCollection},

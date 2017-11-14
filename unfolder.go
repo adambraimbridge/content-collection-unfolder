@@ -21,28 +21,28 @@ const (
 )
 
 type unfolder struct {
-	forwarder         fw.Forwarder
 	uuidsAndDateRes   res.UuidsAndDateResolver
 	relationsResolver relations.RelationsResolver
 	collectionsDiffer differ.CollectionsDiffer
+	forwarder         fw.Forwarder
 	contentRes        res.ContentResolver
 	producer          prod.ContentProducer
 	whitelist         map[string]struct{}
 }
 
-func newUnfolder(forwarder fw.Forwarder,
-	uuidsAndDateRes res.UuidsAndDateResolver,
+func newUnfolder(uuidsAndDateRes res.UuidsAndDateResolver,
 	relationsResolver relations.RelationsResolver,
 	collectionsDiffer differ.CollectionsDiffer,
+	forwarder fw.Forwarder,
 	contentRes res.ContentResolver,
 	producer prod.ContentProducer,
 	whitelist []string) *unfolder {
 
 	u := unfolder{
-		forwarder:         forwarder,
 		uuidsAndDateRes:   uuidsAndDateRes,
 		relationsResolver: relationsResolver,
 		collectionsDiffer: collectionsDiffer,
+		forwarder:         forwarder,
 		contentRes:        contentRes,
 		producer:          producer,
 		whitelist:         map[string]struct{}{},

@@ -31,10 +31,10 @@ func main() {
 		producer := setupMessageProducer(sc, client)
 
 		unfolder := newUnfolder(
-			fw.NewForwarder(client, *sc.writerURI),
 			res.NewUuidResolver(),
 			relations.NewDefaultRelationsResolver(client, *sc.relationsResolverURI),
 			differ.NewDefaultCollectionsDiffer(),
+			fw.NewForwarder(client, *sc.writerURI),
 			res.NewContentResolver(client, *sc.contentResolverURI),
 			prod.NewContentProducer(producer),
 			*sc.unfoldingWhitelist,
