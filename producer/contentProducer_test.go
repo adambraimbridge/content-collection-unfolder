@@ -81,6 +81,34 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 	assert.NotEqual(t, headerIds[0], headerIds[1])
 }
 
+func TestIsDeletedTrueNotSettingPayload(t *testing.T) {
+	mp := new(mockProducer)
+	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Return(nil)
+
+	cp := NewContentProducer(mp)
+
+	tid := transactionidutils.NewTransactionID()
+	lastModified := time.Now().Format(timeFormat)
+	uuid := gouuid.NewV4().String()
+	contentArr := map[string]interface{}{"uuid": uuid}
+
+	cp.Send(tid, lastModified, []map[string]interface{}{contentArr}, map[string]bool{uuid: true})
+
+	mp.AssertCalled(t, "SendMessage",
+		mock.MatchedBy(func(key string) bool {
+			assert.Equal(t, "", key)
+			return true
+		}),
+		mock.MatchedBy(func(msg producer.Message) bool {
+			body := unmarshall(msg.Body)
+			assert.Equal(t, nil, body["payload"])
+
+			return true
+		}),
+	)
+	mp.AssertNumberOfCalls(t, "SendMessage", 1)
+}
+
 func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 	mp := new(mockProducer)
 
