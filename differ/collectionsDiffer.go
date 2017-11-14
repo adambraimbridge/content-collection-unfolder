@@ -13,7 +13,7 @@ func NewDefaultCollectionsDiffer() *defaultCollectionsDiffer {
 
 func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) ([]string, map[string]bool) {
 	var diffColUuids []string
-	var isDeleted map[string]bool
+	isDeleted := make(map[string]bool)
 	for _, incColUuid := range incomingCollectionUuids {
 		found := false
 		for _, oldColUuid := range oldCollectionUuids {

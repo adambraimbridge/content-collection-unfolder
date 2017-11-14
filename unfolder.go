@@ -119,6 +119,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	diffUuids = append(diffUuids, oldCollectionRelations.ContainedIn)
+	isDeleted[oldCollectionRelations.ContainedIn] = false
 
 	logEntry.Infof("Resolving contents for following UUIDs: %v", diffUuids)
 	resolvedContentArr, err := u.contentRes.ResolveContents(diffUuids, tid)
