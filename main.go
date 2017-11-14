@@ -33,21 +33,22 @@ func main() {
 		unfolder := newUnfolder(
 			fw.NewForwarder(client, *sc.writerURI),
 			res.NewUuidResolver(),
-			relations.NewDefaultRelationsResolver(client, *sc.contentCollectionRelationsURI),
+			relations.NewDefaultRelationsResolver(client, *sc.relationsResolverURI),
 			differ.NewDefaultCollectionsDiffer(),
 			res.NewContentResolver(client, *sc.contentResolverURI),
 			prod.NewContentProducer(producer),
 			*sc.unfoldingWhitelist,
 		)
 		healthService := newHealthService(&healthConfig{
-			appDesc:                  appDescription,
-			port:                     *sc.appPort,
-			appSystemCode:            *sc.appSystemCode,
-			appName:                  *sc.appName,
-			writerHealthURI:          *sc.writerHealthURI,
-			contentResolverHealthURI: *sc.contentResolverHealthURI,
-			producer:                 producer,
-			client:                   client,
+			appDesc:                    appDescription,
+			port:                       *sc.appPort,
+			appSystemCode:              *sc.appSystemCode,
+			appName:                    *sc.appName,
+			writerHealthURI:            *sc.writerHealthURI,
+			contentResolverHealthURI:   *sc.contentResolverHealthURI,
+			relationsResolverHealthURI: *sc.relationsResolverHealthURI,
+			producer:                   producer,
+			client:                     client,
 		})
 
 		routing := newRouting(unfolder, healthService)

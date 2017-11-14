@@ -18,14 +18,15 @@ type healthService struct {
 }
 
 type healthConfig struct {
-	appDesc                  string
-	appSystemCode            string
-	appName                  string
-	port                     string
-	writerHealthURI          string
-	contentResolverHealthURI string
-	producer                 producer.MessageProducer
-	client                   *http.Client
+	appDesc                    string
+	appSystemCode              string
+	appName                    string
+	port                       string
+	writerHealthURI            string
+	contentResolverHealthURI   string
+	relationsResolverHealthURI string
+	producer                   producer.MessageProducer
+	client                     *http.Client
 }
 
 func newHealthService(config *healthConfig) *healthService {
@@ -33,6 +34,7 @@ func newHealthService(config *healthConfig) *healthService {
 	service.checks = []health.Check{
 		service.writerCheck(),
 		service.contentResolverCheck(),
+		service.relationsResolverCheck(),
 		service.producerCheck(),
 	}
 	return &service
@@ -69,6 +71,19 @@ func (service *healthService) contentResolverCheck() health.Check {
 		TechnicalSummary: "Checks if the service responsible with saving and retrieving content is healthy",
 		Checker: func() (string, error) {
 			return service.httpAvailabilityChecker(service.config.contentResolverHealthURI)
+		},
+	}
+}
+
+func (service *healthService) relationsResolverCheck() health.Check {
+	return health.Check{
+		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
+		Name:             "Relations API health check",
+		PanicGuide:       "https://dewey.ft.com/relations-api.html",
+		Severity:         1,
+		TechnicalSummary: "Checks if the service responsible with collection relations is healthy",
+		Checker: func() (string, error) {
+			return service.httpAvailabilityChecker(service.config.relationsResolverHealthURI)
 		},
 	}
 }
