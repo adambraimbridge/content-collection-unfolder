@@ -3,9 +3,10 @@ package resolver
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/transactionid-utils-go"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/Financial-Times/transactionid-utils-go"
 )
 
 type ContentResolver interface {

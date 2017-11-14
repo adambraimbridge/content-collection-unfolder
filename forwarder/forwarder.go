@@ -3,10 +3,11 @@ package forwarder
 import (
 	"bytes"
 	"fmt"
-	"github.com/Financial-Times/transactionid-utils-go"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/Financial-Times/transactionid-utils-go"
 )
 
 type Forwarder interface {

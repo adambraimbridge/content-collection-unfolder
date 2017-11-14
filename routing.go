@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net/http"
+
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 type routing struct {

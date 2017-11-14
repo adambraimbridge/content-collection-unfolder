@@ -2,14 +2,15 @@ package resolver
 
 import (
 	"bytes"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 const (

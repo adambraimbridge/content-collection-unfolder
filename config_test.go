@@ -1,9 +1,10 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/jawher/mow.cli"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestDefaults(t *testing.T) {

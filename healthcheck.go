@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/service-status-go/gtg"
-	"net/http"
 )
 
 const healthPath = "/__health"

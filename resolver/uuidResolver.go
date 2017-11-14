@@ -3,8 +3,8 @@ package resolver
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 	"net/http"
+	"time"
 
 	"github.com/Financial-Times/uuid-utils-go"
 )

@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
-	"github.com/Financial-Times/transactionid-utils-go"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/stretchr/testify/assert"
 )
 
 const (

@@ -1,12 +1,11 @@
 package relations
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
-
-	"encoding/json"
-	"io/ioutil"
 
 	"github.com/Financial-Times/transactionid-utils-go"
 )
