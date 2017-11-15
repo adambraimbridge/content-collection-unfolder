@@ -13,31 +13,22 @@ func NewDefaultCollectionsDiffer() *defaultCollectionsDiffer {
 
 func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool) {
 	diffCol := make(map[string]bool)
-	for _, incColUuid := range incomingCollectionUuids {
-		found := false
-		for _, oldColUuid := range oldCollectionUuids {
-			if incColUuid == oldColUuid {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diffCol[incColUuid] = false
-		}
-	}
 
-	for _, oldColUuid := range oldCollectionUuids {
-		found := false
-		for _, incColUuid := range incomingCollectionUuids {
-			if oldColUuid == incColUuid {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diffCol[oldColUuid] = true
-		}
-	}
+	oneWayDiff(incomingCollectionUuids, oldCollectionUuids, false, diffCol)
+	oneWayDiff(oldCollectionUuids, incomingCollectionUuids, true, diffCol)
 
 	return diffCol
+}
+
+func oneWayDiff(firstCollection []string, secondCollection []string, markDeleted bool, mapToAdd map[string]bool) {
+	secondCollectionTemp := make(map[string]interface{})
+	for _, secondColUuid := range secondCollection {
+		secondCollectionTemp[secondColUuid] = nil
+	}
+
+	for _, firstColUuid := range firstCollection {
+		if _, ok := secondCollectionTemp[firstColUuid]; !ok {
+			mapToAdd[firstColUuid] = markDeleted
+		}
+	}
 }
