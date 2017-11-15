@@ -59,17 +59,11 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	tid := transactionidutils.GetTransactionIDFromRequest(req)
 	uuid, collectionType := extractPathVariables(req)
 
-	logEntry := log.WithFields(log.Fields{
-		"tid":            tid,
-		"uuid":           uuid,
-		"collectionType": collectionType,
-	})
-
 	writer.Header().Add(transactionidutils.TransactionIDHeader, tid)
 	writer.Header().Add("Content-Type", "application/json;charset=utf-8")
 
 	if err := uuidutils.ValidateUUID(uuid); err != nil {
-		logEntry.Errorf("Invalid uuid in request path: %v", err)
+		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Invalid uuid in request path: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
@@ -77,43 +71,42 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		logEntry.Errorf("Unable to extract request body: %v", err)
+		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Unable to extract request body: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusUnprocessableEntity, err)
 		return
 	}
 
 	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body)
 	if err != nil {
-		logEntry.Errorf("Error while resolving UUIDs: %v", err)
+		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while resolving UUIDs: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
 
 	oldCollectionRelations, err := u.relationsResolver.Resolve(uuid, tid)
 	if err != nil {
-		logEntry.Errorf("Error while fetching old collection relations: ", err)
+		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while fetching old collection relations: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
 	diffUuids, isDeleted := u.collectionsDiffer.Diff(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
 
-	logEntry.Info("Forwarding request to writer")
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {
-		logEntry.Errorf("Error during forwarding: %v", err)
+		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error during forwarding: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
 	if fwResp.Status != http.StatusOK {
-		logEntry.Warnf("Skip unfolding. Writer returned status [%v]", fwResp.Status)
+		log.Warnf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. Writer returned status [%v]", tid, uuid, collectionType, fwResp.Status)
 		writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
 
 	if _, ok := u.whitelist[collectionType]; !ok {
-		logEntry.Infof("Skip unfolding. Collection type [%v] not in unfolding whitelist", collectionType)
+		log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. Collection type [%v] not in unfolding whitelist", tid, uuid, collectionType, collectionType)
 		writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
@@ -123,15 +116,13 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		isDeleted[oldCollectionRelations.ContainedIn] = false
 	}
 
-	logEntry.Infof("Resolving contents for following UUIDs: %v", diffUuids)
 	resolvedContentArr, err := u.contentRes.ResolveContents(diffUuids, tid)
 	if err != nil {
-		logEntry.Errorf("Error while resolving Contents: %v", err)
+		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while resolving contents: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
-	logEntry.Info("Producing Kafka messages for resolved contents")
 	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr, isDeleted)
 }
 
