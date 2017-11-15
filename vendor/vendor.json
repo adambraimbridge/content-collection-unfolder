@@ -60,13 +60,6 @@
 			"revisionTime": "2017-05-26T06:56:33Z"
 		},
 		{
-			"checksumSHA1": "a2yC46a1qsJomgY6rb+FkTFiqmE=",
-			"origin": "github.com/stretchr/objx/vendor/github.com/davecgh/go-spew/spew/testdata",
-			"path": "github.com/davecgh/go-spew/spew/testdata",
-			"revision": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94",
-			"revisionTime": "2015-09-28T12:21:52Z"
-		},
-		{
 			"checksumSHA1": "Thg9sicXr23/02y0VqmmJoEZIzI=",
 			"path": "github.com/gorilla/context",
 			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
@@ -147,7 +140,7 @@
 			"revisionTime": "2017-03-15T20:58:54Z"
 		},
 		{
-			"checksumSHA1": "fSwelEqr+iIwMeWc0qK8z4GOxXU=",
+			"checksumSHA1": "nepZVMyGeaq492ugudaNQjOJfmo=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "314a259e304ff91bd6985da2a7149bbf91237993",
 			"revisionTime": "2017-07-19T03:44:26Z"
