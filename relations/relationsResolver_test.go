@@ -88,8 +88,8 @@ func TestRelationsResolver_Resolve_RelationsNotFound(t *testing.T) {
 	mockRelationsAPI(t, http.StatusNotFound, "relations-api-good-response.json")
 
 	_, err := relationsResolver.Resolve("3dd42508-a9ab-11e7-8e2d-6debe43a48b4", tid)
-	if err == nil {
-		assert.FailNow(t, "Relations API no relations found should throw error.", err.Error())
+	if err != nil {
+		assert.FailNow(t, "Relations API no relations found shouldn't throw error.", err.Error())
 	}
 }
 

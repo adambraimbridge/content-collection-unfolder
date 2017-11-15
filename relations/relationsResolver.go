@@ -37,6 +37,10 @@ func (drr *defaultRelationsResolver) Resolve(contentCollectionUUID string, tid s
 		return nil, fmt.Errorf("Could not read response after calling [%v], transaction_id=[%v], error was: [%v]", completeUri, tid, err.Error())
 	}
 
+	if resp.StatusCode == http.StatusNotFound {
+		return &CCRelations{}, nil
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Call to [%v] for transaction_id=[%v], responded with error statusCode [%d], error was: [%v]", completeUri, tid, resp.StatusCode, string(bodyAsBytes))
 	}

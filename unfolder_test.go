@@ -609,6 +609,124 @@ func TestAllOk(t *testing.T) {
 		}))
 }
 
+func TestAllOk_NoLeadArticleRelation(t *testing.T) {
+	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
+
+	uuidsAndDate := resolver.UuidsAndDate{
+		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		LastModified: lastModified,
+	}
+	mur.On("Resolve", mock.Anything, mock.Anything).
+		Return(uuidsAndDate, nil)
+
+	oldRelations := relations.CCRelations{}
+	mrr.On("Resolve", mock.Anything, mock.Anything).
+		Return(&oldRelations, nil)
+
+	diffUuids := []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid}
+	isDeletedMap := map[string]bool{firstExistingItemUuid: false, secondExistingItemUuid: false, addedItemUuid: false}
+	mcd.On("Diff", mock.Anything, mock.Anything).
+		Return(diffUuids, isDeletedMap)
+
+	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+
+	contentArr := []map[string]interface{}{
+		{firstExistingItemUuid: firstExistingItemUuid},
+		{secondExistingItemUuid: secondExistingItemUuid},
+		{addedItemUuid: addedItemUuid},
+	}
+	mcr.On("ResolveContents", mock.Anything, mock.Anything).
+		Return(contentArr, nil)
+
+	mcp.On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+
+	server := startTestServer(u)
+	defer server.Close()
+
+	tid := transactionidutils.NewTransactionID()
+	body := readTestFile(t, inputFile)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	verifyResponse(t, http.StatusOK, tid, resp)
+
+	mur.AssertCalled(t, "Resolve",
+		mock.MatchedBy(func(actualReqBody []byte) bool {
+			assert.Equal(t, body, actualReqBody)
+			return true
+		}))
+
+	mrr.AssertCalled(t, "Resolve",
+		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
+			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
+			return true
+		}),
+		mock.MatchedBy(func(actualTid string) bool {
+			assert.Equal(t, tid, actualTid)
+			return true
+		}))
+
+	mcd.AssertCalled(t, "Diff",
+		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
+			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
+			return true
+		}),
+		mock.MatchedBy(func(oldCollectionUuids []string) bool {
+			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
+			return true
+		}))
+
+	mf.AssertCalled(t, "Forward",
+		mock.MatchedBy(func(actualTid string) bool {
+			assert.Equal(t, tid, actualTid)
+			return true
+		}),
+		mock.MatchedBy(func(actualUuid string) bool {
+			assert.Equal(t, collectionUuid, actualUuid)
+			return true
+		}),
+		mock.MatchedBy(func(actualCollectionType string) bool {
+			assert.Equal(t, whitelistedCollection, actualCollectionType)
+			return true
+		}),
+		mock.MatchedBy(func(actualBody []byte) bool {
+			assert.Equal(t, body, actualBody)
+			return true
+		}))
+
+	mcr.AssertCalled(t, "ResolveContents",
+		mock.MatchedBy(func(actualUuids []string) bool {
+			assert.Equal(t, diffUuids, actualUuids)
+			return true
+		}),
+		mock.MatchedBy(func(actualTid string) bool {
+			assert.Equal(t, tid, actualTid)
+			return true
+		}))
+
+	mcp.AssertCalled(t, "Send",
+		mock.MatchedBy(func(actualTid string) bool {
+			assert.Equal(t, tid, actualTid)
+			return true
+		}),
+		mock.MatchedBy(func(actualLastModified string) bool {
+			assert.Equal(t, uuidsAndDate.LastModified, actualLastModified)
+			return true
+		}),
+		mock.MatchedBy(func(actualContentArr []map[string]interface{}) bool {
+			assert.Equal(t, contentArr, actualContentArr)
+			return true
+		}),
+		mock.MatchedBy(func(actualIsDeletedMap map[string]bool) bool {
+			assert.Equal(t, isDeletedMap, actualIsDeletedMap)
+			return true
+		}))
+}
+
 func TestMarshallingErrorIs500(t *testing.T) {
 	recorder := httptest.NewRecorder()
 

@@ -55,6 +55,22 @@ func TestHeadersAndBodyAreOk(t *testing.T) {
 	mp.AssertNumberOfCalls(t, "SendMessage", 1)
 }
 
+func TestEmptyUuidsArrSkips(t *testing.T) {
+	mp := new(mockProducer)
+	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Return(nil)
+
+	cp := NewContentProducer(mp)
+
+	tid := transactionidutils.NewTransactionID()
+	lastModified := time.Now().Format(timeFormat)
+	var contentsArr []map[string]interface{}
+	var isDeletedMap map[string]bool
+
+	cp.Send(tid, lastModified, contentsArr, isDeletedMap)
+
+	mp.AssertNotCalled(t, "SendMessage", mock.Anything, mock.Anything)
+}
+
 func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 	headerIds := []string{}
 
