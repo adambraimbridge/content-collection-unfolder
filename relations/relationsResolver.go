@@ -32,13 +32,13 @@ func (drr *defaultRelationsResolver) Resolve(contentCollectionUUID string, tid s
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return &CCRelations{}, nil
+	}
+
 	bodyAsBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read response after calling [%v], transaction_id=[%v], error was: [%v]", completeUri, tid, err.Error())
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		return &CCRelations{}, nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
