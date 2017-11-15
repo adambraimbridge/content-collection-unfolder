@@ -1,7 +1,7 @@
 package differ
 
 type CollectionsDiffer interface {
-	Diff(incomingCollectionUuids []string, oldCollectionUuids []string) ([]string, map[string]bool)
+	Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool)
 }
 
 type defaultCollectionsDiffer struct {
@@ -11,9 +11,8 @@ func NewDefaultCollectionsDiffer() *defaultCollectionsDiffer {
 	return &defaultCollectionsDiffer{}
 }
 
-func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) ([]string, map[string]bool) {
-	var diffColUuids []string
-	isDeleted := make(map[string]bool)
+func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool) {
+	diffCol := make(map[string]bool)
 	for _, incColUuid := range incomingCollectionUuids {
 		found := false
 		for _, oldColUuid := range oldCollectionUuids {
@@ -23,8 +22,7 @@ func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldC
 			}
 		}
 		if !found {
-			diffColUuids = append(diffColUuids, incColUuid)
-			isDeleted[incColUuid] = false
+			diffCol[incColUuid] = false
 		}
 	}
 
@@ -37,10 +35,9 @@ func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldC
 			}
 		}
 		if !found {
-			diffColUuids = append(diffColUuids, oldColUuid)
-			isDeleted[oldColUuid] = true
+			diffCol[oldColUuid] = true
 		}
 	}
 
-	return diffColUuids, isDeleted
+	return diffCol
 }
