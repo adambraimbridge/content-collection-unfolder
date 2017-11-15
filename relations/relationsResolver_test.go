@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 const tid = "tid_qkeqptjwji"
@@ -109,12 +108,4 @@ func TestRelationsResolver_Resolve_WrongRelationsResponseThrowsError(t *testing.
 	if err == nil {
 		assert.FailNow(t, "Relations API wrong json format response should throw error.", err.Error())
 	}
-}
-
-type mockHttpClient struct {
-	mock.Mock
-}
-
-func (c *mockHttpClient) Do(req *http.Request) (*http.Response, error) {
-	return &http.Response{}, nil
 }
