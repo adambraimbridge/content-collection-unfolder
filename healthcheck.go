@@ -79,7 +79,7 @@ func (service *healthService) relationsResolverCheck() health.Check {
 	return health.Check{
 		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
 		Name:             "Relations API health check",
-		PanicGuide:       "https://dewey.ft.com/relations-api.html",
+		PanicGuide:       "https://dewey.ft.com/upp-relations-api.html",
 		Severity:         1,
 		TechnicalSummary: "Checks if the service responsible with collection relations is healthy",
 		Checker: func() (string, error) {
