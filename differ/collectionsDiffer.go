@@ -21,9 +21,10 @@ func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldC
 }
 
 func oneWayDiff(firstCollection []string, secondCollection []string, markDeleted bool, mapToAdd map[string]bool) {
-	secondCollectionTemp := make(map[string]interface{})
+	secondCollectionTemp := make(map[string]struct{})
+	var exists = struct{}{}
 	for _, secondColUuid := range secondCollection {
-		secondCollectionTemp[secondColUuid] = nil
+		secondCollectionTemp[secondColUuid] = exists
 	}
 
 	for _, firstColUuid := range firstCollection {
