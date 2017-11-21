@@ -89,8 +89,10 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
+	log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Resolved relations, contains:%v, contained in:%v", tid, uuid, collectionType, oldCollectionRelations.Contains, oldCollectionRelations.ContainedIn)
 
 	diffUuidsMap := u.collectionsDiffer.Diff(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
+	log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Diff uuids:%v", tid, uuid, collectionType, diffUuidsMap)
 
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {
@@ -127,6 +129,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
+	log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Resolved content:%v", tid, uuid, collectionType, resolvedContentArr)
 
 	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr, diffUuidsMap)
 }
