@@ -82,6 +82,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
+	log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Incoming items:%v", tid, uuid, collectionType, uuidsAndDate.UuidArr)
 
 	oldCollectionRelations, err := u.relationsResolver.Resolve(uuid, tid)
 	if err != nil {

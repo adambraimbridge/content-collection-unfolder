@@ -3,7 +3,6 @@ package resolver
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/Financial-Times/uuid-utils-go"
@@ -21,8 +20,6 @@ type UuidsAndDate struct {
 }
 
 type fromRequestResolver struct {
-	httpClient      *http.Client
-	relationsApiUrl string
 }
 
 func NewUuidResolver() UuidsAndDateResolver {
@@ -36,7 +33,7 @@ func (r *fromRequestResolver) Resolve(reqData []byte) (UuidsAndDate, error) {
 		return UuidsAndDate{}, fmt.Errorf("Unmarshalling error: %v", err)
 	}
 
-	uuidArr, err := r.resolveUuids(cc)
+	uuidArr, err := resolveUuids(cc)
 	if err != nil {
 		return UuidsAndDate{}, err
 	}
@@ -49,7 +46,7 @@ func (r *fromRequestResolver) Resolve(reqData []byte) (UuidsAndDate, error) {
 	return UuidsAndDate{uuidArr, lastModified}, nil
 }
 
-func (r *fromRequestResolver) resolveUuids(cc contentCollection) ([]string, error) {
+func resolveUuids(cc contentCollection) ([]string, error) {
 	var uuidArr []string
 	for _, item := range cc.Items {
 		err := uuidutils.ValidateUUID(item.Uuid)
