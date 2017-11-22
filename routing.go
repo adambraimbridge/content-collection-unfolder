@@ -30,7 +30,7 @@ func newRouting(unfolder *unfolder, health *healthService) *routing {
 
 func (r routing) routAdminEndpoints() {
 	r.router.HandleFunc(healthPath, health.Handler(r.healthService.buildHealthCheck())).Methods(http.MethodGet)
-	r.router.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(r.healthService.gtgCheck)).Methods(http.MethodGet)
+	r.router.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(r.healthService.GTG)).Methods(http.MethodGet)
 	r.router.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler).Methods(http.MethodGet)
 	r.router.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler).Methods(http.MethodGet)
 	r.router.HandleFunc(status.PingPath, status.PingHandler).Methods(http.MethodGet)
