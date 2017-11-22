@@ -128,6 +128,6 @@ There are following checks are performed when the `/__health` is called:
 1. **relations-api** connectivity check
 2. **content-collection-neo4j-rw** connectivity check
 3. **document-store-api** connectivity check
-4. **kafka** connectivity check and topic existence check
+4. **kafka** connectivity check
 
 The `/__gtg` endpoint will return a `200` in case all above health checks are successful.  
