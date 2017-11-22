@@ -54,8 +54,6 @@ func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, cont
 	if err != nil {
 		logEntry.Warnf("Unable to send message to Kafka. Reason: %v", err)
 	}
-
-	log.Infof("Message with tid=%v. Message sent for content with uuid:%v", tid, content["uuid"])
 }
 
 func extractUuid(content map[string]interface{}) (string, error) {
