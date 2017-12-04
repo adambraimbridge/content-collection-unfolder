@@ -48,7 +48,7 @@ func (r *fromRequestResolver) Resolve(reqData []byte) (UuidsAndDate, error) {
 
 func resolveUuids(cc contentCollection) ([]string, error) {
 	var uuidArr []string
-	for _, item := range cc.Items {
+	for _, item := range cc.Payload.Items {
 		err := uuidutils.ValidateUUID(item.Uuid)
 		if err != nil {
 			return nil, fmt.Errorf("UUID validation error: %v", err)
@@ -69,8 +69,16 @@ func resolveLastModified(cc contentCollection) (string, error) {
 }
 
 type contentCollection struct {
+	Payload      payload `json:"payload"`
+	ContentUri   string  `json:"contentUri"`
+	LastModified string  `json:"lastModified"`
+	Uuid         string  `json:"uuid"`
+}
+
+type payload struct {
 	LastModified string                  `json:"lastModified"`
 	Items        []contentCollectionItem `json:"items"`
+	Uuid         string                  `json:"uuid"`
 }
 
 type contentCollectionItem struct {

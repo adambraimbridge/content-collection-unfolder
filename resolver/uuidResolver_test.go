@@ -10,7 +10,7 @@ import (
 )
 
 func TestValidInput(t *testing.T) {
-	ccBytes := readTestFile(t, "content-collection.json")
+	ccBytes := readTestFile(t, "content-collection-full-msg.json")
 
 	r := NewUuidResolver()
 	uuidsAndDate, err := r.Resolve(ccBytes)

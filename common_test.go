@@ -14,7 +14,7 @@ import (
 
 const (
 	whitelistedCollection  = "content-package"
-	inputFile              = "content-collection.json"
+	inputFile              = "content-collection-full-msg.json"
 	collectionUuid         = "45163790-eec9-11e6-abbc-ee7d9c5b3b90"
 	leadArticleUuid        = "ddda0e1c-a9b2-11e7-8e2d-6debe43a48b4"
 	firstExistingItemUuid  = "aaaac4c6-dcc6-11e6-86ac-f253db7791c6"
