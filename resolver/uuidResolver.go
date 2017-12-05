@@ -69,8 +69,10 @@ func resolveLastModified(cc contentCollection) (string, error) {
 }
 
 type contentCollection struct {
-	LastModified string                  `json:"lastModified"`
-	Items        []contentCollectionItem `json:"items"`
+	UUID             string                  `json:"uuid"`
+	Items            []contentCollectionItem `json:"items"`
+	PublishReference string                  `json:"publishReference"`
+	LastModified     string                  `json:"lastModified"`
 }
 
 type contentCollectionItem struct {
