@@ -75,6 +75,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		writeError(writer, http.StatusUnprocessableEntity, err)
 		return
 	}
+	log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Incoming body is: %v", tid, uuid, collectionType, body)
 
 	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body)
 	if err != nil {
