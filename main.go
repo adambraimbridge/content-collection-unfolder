@@ -1,16 +1,19 @@
 package main
 
 import (
-	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
-	prod "github.com/Financial-Times/content-collection-unfolder/producer"
-	res "github.com/Financial-Times/content-collection-unfolder/resolver"
-	"github.com/Financial-Times/message-queue-go-producer/producer"
-	log "github.com/Sirupsen/logrus"
-	"github.com/jawher/mow.cli"
 	"net"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/Financial-Times/content-collection-unfolder/differ"
+	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
+	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	"github.com/Financial-Times/content-collection-unfolder/relations"
+	res "github.com/Financial-Times/content-collection-unfolder/resolver"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
+	log "github.com/Sirupsen/logrus"
+	"github.com/jawher/mow.cli"
 )
 
 const appDescription = "UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. If a 200 answer is received from the writer, it retrieves the elements in the collection from the document-store-api and places them in Kafka on the Post Publication topic so that notifications will be created for them."
@@ -28,21 +31,24 @@ func main() {
 		producer := setupMessageProducer(sc, client)
 
 		unfolder := newUnfolder(
-			fw.NewForwarder(client, *sc.writerURI),
 			res.NewUuidResolver(),
+			relations.NewDefaultRelationsResolver(client, *sc.relationsResolverURI),
+			differ.NewDefaultCollectionsDiffer(),
+			fw.NewForwarder(client, *sc.writerURI),
 			res.NewContentResolver(client, *sc.contentResolverURI),
 			prod.NewContentProducer(producer),
 			*sc.unfoldingWhitelist,
 		)
 		healthService := newHealthService(&healthConfig{
-			appDesc:                  appDescription,
-			port:                     *sc.appPort,
-			appSystemCode:            *sc.appSystemCode,
-			appName:                  *sc.appName,
-			writerHealthURI:          *sc.writerHealthURI,
-			contentResolverHealthURI: *sc.contentResolverHealthURI,
-			producer:                 producer,
-			client:                   client,
+			appDesc:                    appDescription,
+			port:                       *sc.appPort,
+			appSystemCode:              *sc.appSystemCode,
+			appName:                    *sc.appName,
+			writerHealthURI:            *sc.writerHealthURI,
+			contentResolverHealthURI:   *sc.contentResolverHealthURI,
+			relationsResolverHealthURI: *sc.relationsResolverHealthURI,
+			producer:                   producer,
+			client:                     client,
 		})
 
 		routing := newRouting(unfolder, healthService)

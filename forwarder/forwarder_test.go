@@ -1,13 +1,14 @@
 package forwarder
 
 import (
-	"github.com/Financial-Times/transactionid-utils-go"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 const (

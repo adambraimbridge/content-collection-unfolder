@@ -3,27 +3,32 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/Financial-Times/content-collection-unfolder/differ"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
 	prod "github.com/Financial-Times/content-collection-unfolder/producer"
+	"github.com/Financial-Times/content-collection-unfolder/relations"
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 const (
-	writerPath                = "/content-collection/{collectionType}/{uuid}"
-	writerHealthPath          = "/__health"
-	contentResolverPath       = "/content"
-	contentResolverHealthPath = "/__health"
-	tid                       = "tid_test123456"
+	writerPath                  = "/content-collection/{collectionType}/{uuid}"
+	writerHealthPath            = "/__health"
+	contentResolverPath         = "/content"
+	contentResolverHealthPath   = "/__health"
+	relationsResolverPath       = "/contentcollection/{uuid}/relations"
+	relationsResolverHealthPath = "/__health"
+	tid                         = "tid_test123456"
 )
 
 func TestAllHealthChecksBad(t *testing.T) {
@@ -33,9 +38,12 @@ func TestAllHealthChecksBad(t *testing.T) {
 	contentResolverServer := startContentResolverServer(t, notFoundHandler)
 	defer contentResolverServer.Close()
 
+	relationsResolverServer := startRelationsResolverServer(t, notFoundHandler)
+	defer relationsResolverServer.Close()
+
 	messageProducer := &testProducer{t, false, []string{}}
 
-	routing := startRouting(writerServer, contentResolverServer, messageProducer)
+	routing := startRouting(writerServer, contentResolverServer, relationsResolverServer, messageProducer)
 
 	unfolderServer := httptest.NewServer(routing.router)
 	defer unfolderServer.Close()
@@ -56,7 +64,7 @@ func TestAllHealthChecksBad(t *testing.T) {
 	json.Unmarshal(body, &healthResult)
 
 	assert.False(t, healthResult.Ok)
-	assert.Equal(t, 3, len(healthResult.Checks))
+	assert.Equal(t, 4, len(healthResult.Checks))
 
 	for _, checkResult := range healthResult.Checks {
 		assert.False(t, checkResult.Ok)
@@ -70,9 +78,12 @@ func TestAllHealthChecksGood(t *testing.T) {
 	contentResolverServer := startContentResolverServer(t, okHandler)
 	defer contentResolverServer.Close()
 
+	relationsResolverServer := startRelationsResolverServer(t, okHandler)
+	defer relationsResolverServer.Close()
+
 	messageProducer := &testProducer{t, true, []string{}}
 
-	routing := startRouting(writerServer, contentResolverServer, messageProducer)
+	routing := startRouting(writerServer, contentResolverServer, relationsResolverServer, messageProducer)
 
 	unfolderServer := httptest.NewServer(routing.router)
 	defer unfolderServer.Close()
@@ -93,7 +104,7 @@ func TestAllHealthChecksGood(t *testing.T) {
 	json.Unmarshal(body, &healthResult)
 
 	assert.True(t, healthResult.Ok)
-	assert.Equal(t, 3, len(healthResult.Checks))
+	assert.Equal(t, 4, len(healthResult.Checks))
 
 	for _, checkResult := range healthResult.Checks {
 		assert.True(t, checkResult.Ok)
@@ -107,9 +118,12 @@ func TestEndToEndFlow(t *testing.T) {
 	contentResolverServer := startContentResolverServer(t, okHandler)
 	defer contentResolverServer.Close()
 
+	relationsResolverServer := startRelationsResolverServer(t, okHandler)
+	defer relationsResolverServer.Close()
+
 	messageProducer := &testProducer{t, true, []string{}}
 
-	routing := startRouting(writerServer, contentResolverServer, messageProducer)
+	routing := startRouting(writerServer, contentResolverServer, relationsResolverServer, messageProducer)
 
 	unfolderServer := httptest.NewServer(routing.router)
 	defer unfolderServer.Close()
@@ -122,10 +136,11 @@ func TestEndToEndFlow(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	assert.Equal(t, 2, len(messageProducer.received))
+	assert.Equal(t, 3, len(messageProducer.received))
 	allMessages := strings.Join(messageProducer.received, "")
-	assert.Equal(t, 2, strings.Count(allMessages, firstItemUuid))
-	assert.Equal(t, 2, strings.Count(allMessages, secondItemUuid))
+	assert.Equal(t, 2, strings.Count(allMessages, addedItemUuid))
+	assert.Equal(t, 1, strings.Count(allMessages, deletedItemUuid)) //payload is empty so no uuid in payload
+	assert.Equal(t, 2, strings.Count(allMessages, leadArticleUuid))
 }
 
 func notFoundHandler(w http.ResponseWriter, _ *http.Request) {
@@ -162,8 +177,9 @@ func startContentResolverServer(t *testing.T, healthHandler func(w http.Response
 		uuidArr := r.URL.Query()["uuid"]
 
 		assert.Equal(t, tid, transactionidutils.GetTransactionIDFromRequest(r))
-		assert.Contains(t, uuidArr, firstItemUuid)
-		assert.Contains(t, uuidArr, secondItemUuid)
+		assert.Contains(t, uuidArr, leadArticleUuid)
+		assert.Contains(t, uuidArr, addedItemUuid)
+		assert.Contains(t, uuidArr, deletedItemUuid)
 
 		contentArr := []map[string]string{}
 		for _, uuid := range uuidArr {
@@ -180,6 +196,32 @@ func startContentResolverServer(t *testing.T, healthHandler func(w http.Response
 	}).Methods(http.MethodGet)
 
 	router.HandleFunc(contentResolverHealthPath, healthHandler).Methods(http.MethodGet)
+
+	return httptest.NewServer(router)
+}
+
+func startRelationsResolverServer(t *testing.T, healthHandler func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
+	router := mux.NewRouter()
+
+	router.HandleFunc(relationsResolverPath, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, tid, transactionidutils.GetTransactionIDFromRequest(r))
+		assert.True(t, strings.Contains(r.URL.Path, collectionUuid))
+
+		ccRelations := &relations.CCRelations{
+			ContainedIn: leadArticleUuid,
+			Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+		}
+
+		body, err := json.Marshal(ccRelations)
+		assert.NoError(t, err)
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(body)
+
+		assert.NoError(t, err)
+	}).Methods(http.MethodGet)
+
+	router.HandleFunc(relationsResolverHealthPath, healthHandler).Methods(http.MethodGet)
 
 	return httptest.NewServer(router)
 }
@@ -210,23 +252,27 @@ func (tp *testProducer) ConnectivityCheck() (string, error) {
 func startRouting(
 	writerServer *httptest.Server,
 	contentResolverServer *httptest.Server,
+	relationsResolverServer *httptest.Server,
 	messageProducer *testProducer) *routing {
 
 	client := setupHttpClient()
 	hc := &healthConfig{
-		appDesc:                  appDescription,
-		port:                     "8080",
-		appSystemCode:            "content-collection-unfolder",
-		appName:                  "Content Collection Unfolder",
-		writerHealthURI:          writerServer.URL + writerHealthPath,
-		contentResolverHealthURI: contentResolverServer.URL + contentResolverHealthPath,
-		producer:                 messageProducer,
-		client:                   client,
+		appDesc:                    appDescription,
+		port:                       "8080",
+		appSystemCode:              "content-collection-unfolder",
+		appName:                    "Content Collection Unfolder",
+		writerHealthURI:            writerServer.URL + writerHealthPath,
+		contentResolverHealthURI:   contentResolverServer.URL + contentResolverHealthPath,
+		relationsResolverHealthURI: relationsResolverServer.URL + relationsResolverHealthPath,
+		producer:                   messageProducer,
+		client:                     client,
 	}
 	routing := newRouting(
 		newUnfolder(
-			fw.NewForwarder(client, writerServer.URL+strings.Split(writerPath, "/{")[0]),
 			res.NewUuidResolver(),
+			relations.NewDefaultRelationsResolver(client, relationsResolverServer.URL+relationsResolverPath),
+			differ.NewDefaultCollectionsDiffer(),
+			fw.NewForwarder(client, writerServer.URL+strings.Split(writerPath, "/{")[0]),
 			res.NewContentResolver(client, contentResolverServer.URL+contentResolverPath),
 			prod.NewContentProducer(messageProducer),
 			[]string{whitelistedCollection},

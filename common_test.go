@@ -2,22 +2,26 @@ package main
 
 import (
 	"bytes"
-	"github.com/Financial-Times/transactionid-utils-go"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
-	whitelistedCollection = "content-package"
-	inputFile             = "content-collection.json"
-	collectionUuid        = "45163790-eec9-11e6-abbc-ee7d9c5b3b90"
-	firstItemUuid         = "d4986a58-de3b-11e6-86ac-f253db7791c6"
-	secondItemUuid        = "d9b4c4c6-dcc6-11e6-86ac-f253db7791c6"
-	lastModified          = "2017-01-31T15:33:21.687Z"
+	whitelistedCollection  = "content-package"
+	inputFile              = "content-collection.json"
+	collectionUuid         = "45163790-eec9-11e6-abbc-ee7d9c5b3b90"
+	leadArticleUuid        = "ddda0e1c-a9b2-11e7-8e2d-6debe43a48b4"
+	firstExistingItemUuid  = "aaaac4c6-dcc6-11e6-86ac-f253db7791c6"
+	secondExistingItemUuid = "bbbbc4c6-dcc6-11e6-86ac-f253db7791c6"
+	deletedItemUuid        = "d9b4c4c6-dcc6-11e6-86ac-f253db7791c6"
+	addedItemUuid          = "d4986a58-de3b-11e6-86ac-f253db7791c6"
+	lastModified           = "2017-01-31T15:33:21.687Z"
 )
 
 func buildRequest(t *testing.T, serverUrl string, collection string, uuid string, body []byte, tid string) *http.Request {

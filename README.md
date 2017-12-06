@@ -4,15 +4,17 @@
 
 ## Introduction
 
-UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. 
-If a 200 answer is received from the writer, it retrieves the elements in the collection from 
-the document-store-api and places them in Kafka on the Post Publication topic so that notifications 
-will be created for them.
+UPP Service that finds added/deleted collection members and lead article through relations-api.
+Then it forwards mapped content collections to the content-collection-rw-neo4j to be written in Neo4j database.
+If a 200 answer is received from the writer, 
+it retrieves the added/deleted contents and the lead article in the collection from document-store-api 
+and then places them in Kafka on the Post Publication topic so that notifications will be created for them.
 
 Dependencies are:
-1. content-collection-rw-neo4j
-2. document-store-api
-3. kafka
+1. relations-api
+2. content-collection-rw-neo4j
+3. document-store-api
+4. kafka
 
 ## Installation
       
@@ -38,18 +40,20 @@ Download the source code, dependencies and test dependencies:
 
 Options:
 
-        --app-system-code="content-collection-unfolder"                                          System Code of the application ($APP_SYSTEM_CODE)
-        --app-name="Content Collection Unfolder"                                                 Application name ($APP_NAME)
-        --app-port="8080"                                                                        Port to listen on ($APP_PORT)
-        --unfolding-whitelist=["content-package"]                                                Collection types for which the unfolding process should be performed ($UNFOLDING_WHITELIST)
-        --writer-uri="http://localhost:8080/__content-collection-rw-neo4j/content-collection/"   URI of the Writer ($WRITER_URI)
-        --writer-health-uri="http://localhost:8080/__content-collection-rw-neo4j/__health"       URI of the Writer health endpoint ($WRITER_HEALTH_URI)
-        --content-resolver-uri="http://localhost:8080/__document-store-api/content/"             URI of the Content Resolver ($CONTENT_RESOLVER_URI)
-        --content-resolver-health-uri="http://localhost:8080/__document-store-api/__health"      URI of the Content Resolver health endpoint ($CONTENT_RESOLVER_HEALTH_URI)
-        --kafka-write-topic="PostPublicationEvents"                                              The topic to write the messages to ($Q_WRITE_TOPIC)
-        --kafka-proxy-address="http://localhost:8080"                                            Addresses of the kafka proxy ($Q_ADDR)
-        --kafka-proxy-hostname="kafka"                                                           The hostname of the kafka proxy (for hostname based routing) ($Q_HOSTNAME)
-        --kafka-authorization=""                                                                 Authorization for kafka ($Q_AUTHORIZATION)
+        --app-system-code="content-collection-unfolder"                                                         System Code of the application ($APP_SYSTEM_CODE)
+        --app-name="Content Collection Unfolder"                                                                Application name ($APP_NAME)
+        --app-port="8080"                                                                                       Port to listen on ($APP_PORT)
+        --unfolding-whitelist=["content-package"]                                                               Collection types for which the unfolding process should be performed ($UNFOLDING_WHITELIST)
+        --writer-uri="http://localhost:8080/__content-collection-rw-neo4j/content-collection/"                  URI of the Writer ($WRITER_URI)
+        --writer-health-uri="http://localhost:8080/__content-collection-rw-neo4j/__health"                      URI of the Writer health endpoint ($WRITER_HEALTH_URI)
+        --content-resolver-uri="http://localhost:8080/__document-store-api/content/"                            URI of the Content Resolver ($CONTENT_RESOLVER_URI)
+        --content-resolver-health-uri="http://localhost:8080/__document-store-api/__health"                     URI of the Content Resolver health endpoint ($CONTENT_RESOLVER_HEALTH_URI)
+        --relations-resolver-uri="http://localhost:8080/__relations-api/contentcollection/{uuid}/relations" \   URI of the Relations Resolver ($RELATIONS_RESOLVER_URI)
+        --relations-resolver-health-uri="http://localhost:8080/__relations-api/__health" \                      URI of the Relations Resolver health endpoint ($RELATIONS_RESOLVER_HEALTH_URI)
+        --kafka-write-topic="PostPublicationEvents"                                                             The topic to write the messages to ($Q_WRITE_TOPIC)
+        --kafka-proxy-address="http://localhost:8080"                                                           Addresses of the kafka proxy ($Q_ADDR)
+        --kafka-proxy-hostname="kafka"                                                                          The hostname of the kafka proxy (for hostname based routing) ($Q_HOSTNAME)
+        --kafka-authorization=""                                                                                Authorization for kafka ($Q_AUTHORIZATION)
         
         
 3. Test:
@@ -102,10 +106,11 @@ case a non `200` response is received.
 
 The flow of the unfolder is the following:
 
-1. the PUT request is received and is forwarded to the **content-collection-neo4j-rw** 
+1. the PUT request is received and a call is made to **relations-api** /contentcollection/{uuid}/relations to get added/deleted members and lead article
+1. the PUT request is forwarded to the **content-collection-neo4j-rw** to write data in Neo4j
 2. the response from the RW app is evaluated, if it is not a `200` response, the writer response is sent to the unfolder client
 3. in case the collection type is not one that needs unfolding (at the moment only `content-package` is unfolded), a `200` response is returned
-4. all the UUIDs from content collection as resolved using the **document-store-api**
+4. the content of UUIDs of added/deleted content and lead article are resolved using the **document-store-api**
 5. for each piece of content retrieved from the DSAPI, a new message is created and placed on the configured **kafka** topic
 
 ## Healthchecks
@@ -120,8 +125,9 @@ Admin endpoints are:
 `/__health`
 
 There are following checks are performed when the `/__health` is called:
-1. **content-collection-neo4j-rw** connectivity check
-2. **document-store-api** connectivity check
-3. **kafka** connectivity check and topic existence check
+1. **relations-api** connectivity check
+2. **content-collection-neo4j-rw** connectivity check
+3. **document-store-api** connectivity check
+4. **kafka** connectivity check
 
 The `/__gtg` endpoint will return a `200` in case all above health checks are successful.  

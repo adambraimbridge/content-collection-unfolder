@@ -5,18 +5,20 @@ import (
 )
 
 type serviceConfig struct {
-	appSystemCode            *string
-	appName                  *string
-	appPort                  *string
-	unfoldingWhitelist       *[]string
-	writerURI                *string
-	writerHealthURI          *string
-	contentResolverURI       *string
-	contentResolverHealthURI *string
-	writeTopic               *string
-	kafkaAddr                *string
-	kafkaHostname            *string
-	kafkaAuth                *string
+	appSystemCode              *string
+	appName                    *string
+	appPort                    *string
+	unfoldingWhitelist         *[]string
+	writerURI                  *string
+	writerHealthURI            *string
+	contentResolverURI         *string
+	contentResolverHealthURI   *string
+	relationsResolverURI       *string
+	relationsResolverHealthURI *string
+	writeTopic                 *string
+	kafkaAddr                  *string
+	kafkaHostname              *string
+	kafkaAuth                  *string
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {
@@ -76,6 +78,20 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		EnvVar: "CONTENT_RESOLVER_HEALTH_URI",
 	})
 
+	relationsResolverURI := app.String(cli.StringOpt{
+		Name:   "relations-resolver-uri",
+		Value:  "http://localhost:8080/__relations-api/contentcollection/{uuid}/relations",
+		Desc:   "URI of the relations resolver endpoint",
+		EnvVar: "RELATIONS_RESOLVER_URI",
+	})
+
+	relationsResolverHealthURI := app.String(cli.StringOpt{
+		Name:   "relations-resolver-health-uri",
+		Value:  "http://localhost:8080/__relations-api/__health",
+		Desc:   "URI of the relations resolver health endpoint",
+		EnvVar: "RELATIONS_RESOLVER_HEALTH_URI",
+	})
+
 	writeTopic := app.String(cli.StringOpt{
 		Name:   "kafka-write-topic",
 		Value:  "PostPublicationEvents",
@@ -104,34 +120,38 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 	})
 
 	return &serviceConfig{
-		appSystemCode:            appSystemCode,
-		appName:                  appName,
-		appPort:                  appPort,
-		unfoldingWhitelist:       unfoldingWhitelist,
-		writerURI:                writerURI,
-		writerHealthURI:          writerHealthURI,
-		contentResolverURI:       contentResolverURI,
-		contentResolverHealthURI: contentResolverHealthURI,
-		writeTopic:               writeTopic,
-		kafkaAddr:                kafkaAddr,
-		kafkaHostname:            kafkaHostname,
-		kafkaAuth:                kafkaAuth,
+		appSystemCode:              appSystemCode,
+		appName:                    appName,
+		appPort:                    appPort,
+		unfoldingWhitelist:         unfoldingWhitelist,
+		writerURI:                  writerURI,
+		writerHealthURI:            writerHealthURI,
+		contentResolverURI:         contentResolverURI,
+		contentResolverHealthURI:   contentResolverHealthURI,
+		relationsResolverURI:       relationsResolverURI,
+		relationsResolverHealthURI: relationsResolverHealthURI,
+		writeTopic:                 writeTopic,
+		kafkaAddr:                  kafkaAddr,
+		kafkaHostname:              kafkaHostname,
+		kafkaAuth:                  kafkaAuth,
 	}
 }
 
 func (sc *serviceConfig) toMap() map[string]interface{} {
 	return map[string]interface{}{
-		"appSystemCode":            *sc.appSystemCode,
-		"appName":                  *sc.appName,
-		"appPort":                  *sc.appPort,
-		"unfoldingWhitelist":       *sc.unfoldingWhitelist,
-		"writerURI":                *sc.writerURI,
-		"writerHealthURI":          *sc.writerHealthURI,
-		"contentResolverURI":       *sc.contentResolverURI,
-		"contentResolverHealthURI": *sc.contentResolverHealthURI,
-		"writeTopic":               *sc.writeTopic,
-		"kafkaAddr":                *sc.kafkaAddr,
-		"kafkaHostname":            *sc.kafkaHostname,
-		"kafkaAuth":                *sc.kafkaAuth,
+		"appSystemCode":              *sc.appSystemCode,
+		"appName":                    *sc.appName,
+		"appPort":                    *sc.appPort,
+		"unfoldingWhitelist":         *sc.unfoldingWhitelist,
+		"writerURI":                  *sc.writerURI,
+		"writerHealthURI":            *sc.writerHealthURI,
+		"contentResolverURI":         *sc.contentResolverURI,
+		"contentResolverHealthURI":   *sc.contentResolverHealthURI,
+		"relationsResolverURI":       *sc.relationsResolverURI,
+		"relationsResolverHealthURI": *sc.relationsResolverHealthURI,
+		"writeTopic":                 *sc.writeTopic,
+		"kafkaAddr":                  *sc.kafkaAddr,
+		"kafkaHostname":              *sc.kafkaHostname,
+		"kafkaAuth":                  *sc.kafkaAuth,
 	}
 }

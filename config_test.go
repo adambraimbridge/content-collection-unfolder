@@ -1,9 +1,10 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/jawher/mow.cli"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestDefaults(t *testing.T) {
@@ -21,6 +22,8 @@ func TestDefaults(t *testing.T) {
 		assert.NotEmpty(t, configMap["writerHealthURI"])
 		assert.NotEmpty(t, configMap["contentResolverURI"])
 		assert.NotEmpty(t, configMap["contentResolverHealthURI"])
+		assert.NotEmpty(t, configMap["relationsResolverURI"])
+		assert.NotEmpty(t, configMap["relationsResolverHealthURI"])
 		assert.NotEmpty(t, configMap["writeTopic"])
 		assert.NotEmpty(t, configMap["kafkaAddr"])
 		assert.NotEmpty(t, configMap["kafkaHostname"])

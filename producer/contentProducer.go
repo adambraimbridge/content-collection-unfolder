@@ -3,6 +3,7 @@ package producer
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
@@ -16,7 +17,7 @@ const (
 )
 
 type ContentProducer interface {
-	Send(tid string, lastModified string, contentArr []map[string]interface{})
+	Send(tid string, lastModified string, contents []map[string]interface{}, isDeleted map[string]bool)
 }
 
 type defaultContentProducer struct {
@@ -29,22 +30,21 @@ func NewContentProducer(msgProducer producer.MessageProducer) ContentProducer {
 	}
 }
 
-func (p *defaultContentProducer) Send(tid string, lastModified string, contentArr []map[string]interface{}) {
-	for _, content := range contentArr {
-		p.sendSingleMessage(tid, content, lastModified)
+func (p *defaultContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}, isDeleted map[string]bool) {
+	for _, content := range contents {
+		logEntry := log.WithField("tid", tid)
+		uuid, err := extractUuid(content)
+		if err != nil {
+			logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
+		} else {
+			p.sendSingleMessage(tid, uuid, content, isDeleted[uuid], lastModified)
+		}
 	}
 }
 
-func (p *defaultContentProducer) sendSingleMessage(tid string, content map[string]interface{}, lastModified string) {
-	logEntry := log.WithField("tid", tid)
-	uuid, err := extractUuid(content)
-	if err != nil {
-		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
-		return
-	}
-
-	logEntry = logEntry.WithField("uuid", uuid)
-	msg, err := buildMessage(tid, uuid, lastModified, content)
+func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, content map[string]interface{}, deleted bool, lastModified string) {
+	logEntry := log.WithField("tid", tid).WithField("uuid", uuid)
+	msg, err := buildMessage(tid, uuid, lastModified, content, deleted)
 	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		return
@@ -75,12 +75,16 @@ func extractUuid(content map[string]interface{}) (string, error) {
 	return uuid, nil
 }
 
-func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
+func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}, deleted bool) (*producer.Message, error) {
 	body := publicationMessageBody{
 		ContentURI:   uriBase + uuid,
 		LastModified: lastModified,
-		Payload:      content,
 	}
+
+	if !deleted {
+		body.Payload = content
+	}
+
 	bodyAsString, err := body.toJson()
 	if err != nil {
 		return nil, err

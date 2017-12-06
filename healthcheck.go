@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/service-status-go/gtg"
-	"net/http"
 )
 
 const healthPath = "/__health"
@@ -17,14 +18,15 @@ type healthService struct {
 }
 
 type healthConfig struct {
-	appDesc                  string
-	appSystemCode            string
-	appName                  string
-	port                     string
-	writerHealthURI          string
-	contentResolverHealthURI string
-	producer                 producer.MessageProducer
-	client                   *http.Client
+	appDesc                    string
+	appSystemCode              string
+	appName                    string
+	port                       string
+	writerHealthURI            string
+	contentResolverHealthURI   string
+	relationsResolverHealthURI string
+	producer                   producer.MessageProducer
+	client                     *http.Client
 }
 
 func newHealthService(config *healthConfig) *healthService {
@@ -32,6 +34,7 @@ func newHealthService(config *healthConfig) *healthService {
 	service.checks = []health.Check{
 		service.writerCheck(),
 		service.contentResolverCheck(),
+		service.relationsResolverCheck(),
 		service.producerCheck(),
 	}
 	return &service
@@ -53,9 +56,7 @@ func (service *healthService) writerCheck() health.Check {
 		PanicGuide:       "https://dewey.ft.com/upp-content-collection-rw-neo4j.html",
 		Severity:         1,
 		TechnicalSummary: "Checks if the service responsible with writing content collections to Neo4j is healthy",
-		Checker: func() (string, error) {
-			return service.httpAvailabilityChecker(service.config.writerHealthURI)
-		},
+		Checker:          service.writerChecker,
 	}
 }
 
@@ -66,9 +67,18 @@ func (service *healthService) contentResolverCheck() health.Check {
 		PanicGuide:       "https://dewey.ft.com/document-store-api.html",
 		Severity:         1,
 		TechnicalSummary: "Checks if the service responsible with saving and retrieving content is healthy",
-		Checker: func() (string, error) {
-			return service.httpAvailabilityChecker(service.config.contentResolverHealthURI)
-		},
+		Checker:          service.contentResolverChecker,
+	}
+}
+
+func (service *healthService) relationsResolverCheck() health.Check {
+	return health.Check{
+		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
+		Name:             "Relations API health check",
+		PanicGuide:       "https://dewey.ft.com/upp-relations-api.html",
+		Severity:         1,
+		TechnicalSummary: "Checks if the service responsible with collection relations is healthy",
+		Checker:          service.relationsResolverChecker,
 	}
 }
 
@@ -79,10 +89,24 @@ func (service *healthService) producerCheck() health.Check {
 		PanicGuide:       "https://dewey.ft.com/kafka-proxy.html",
 		Severity:         1,
 		TechnicalSummary: "Checks if Kafka can be accessed through http proxy",
-		Checker: func() (string, error) {
-			return service.config.producer.ConnectivityCheck()
-		},
+		Checker:          service.producerChecker,
 	}
+}
+
+func (service *healthService) writerChecker() (string, error) {
+	return service.httpAvailabilityChecker(service.config.writerHealthURI)
+}
+
+func (service *healthService) contentResolverChecker() (string, error) {
+	return service.httpAvailabilityChecker(service.config.contentResolverHealthURI)
+}
+
+func (service *healthService) relationsResolverChecker() (string, error) {
+	return service.httpAvailabilityChecker(service.config.relationsResolverHealthURI)
+}
+
+func (service *healthService) producerChecker() (string, error) {
+	return service.config.producer.ConnectivityCheck()
 }
 
 func (service *healthService) httpAvailabilityChecker(healthUri string) (string, error) {
@@ -107,11 +131,34 @@ func (service *healthService) httpAvailabilityChecker(healthUri string) (string,
 	return "OK", nil
 }
 
-func (service *healthService) gtgCheck() gtg.Status {
-	for _, check := range service.checks {
-		if _, err := check.Checker(); err != nil {
-			return gtg.Status{GoodToGo: false, Message: err.Error()}
-		}
+func (service *healthService) GTG() gtg.Status {
+	writerCheck := func() gtg.Status {
+		return gtgCheck(service.writerChecker)
+	}
+
+	contentResolverCheck := func() gtg.Status {
+		return gtgCheck(service.contentResolverChecker)
+	}
+
+	relationsResolverCheck := func() gtg.Status {
+		return gtgCheck(service.relationsResolverChecker)
+	}
+
+	producerCheck := func() gtg.Status {
+		return gtgCheck(service.producerChecker)
+	}
+
+	return gtg.FailFastParallelCheck([]gtg.StatusChecker{
+		writerCheck,
+		contentResolverCheck,
+		relationsResolverCheck,
+		producerCheck,
+	})()
+}
+
+func gtgCheck(handler func() (string, error)) gtg.Status {
+	if _, err := handler(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
 	return gtg.Status{GoodToGo: true}
 }

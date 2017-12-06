@@ -60,6 +60,12 @@
 			"revisionTime": "2017-05-26T06:56:33Z"
 		},
 		{
+			"checksumSHA1": "Thg9sicXr23/02y0VqmmJoEZIzI=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
 			"checksumSHA1": "n1k+rq4l+8e79WwV/oOKwgscYFc=",
 			"path": "github.com/gorilla/handlers",
 			"revision": "a4043c62cc2329bacda331d33fc908ab11ef0ec3",
@@ -132,6 +138,12 @@
 			"path": "golang.org/x/net/context",
 			"revision": "b8b13433cc9973c2ad1c7217f0cf4a59d00b135d",
 			"revisionTime": "2017-03-15T20:58:54Z"
+		},
+		{
+			"checksumSHA1": "nepZVMyGeaq492ugudaNQjOJfmo=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "314a259e304ff91bd6985da2a7149bbf91237993",
+			"revisionTime": "2017-07-19T03:44:26Z"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/content-collection-unfolder"

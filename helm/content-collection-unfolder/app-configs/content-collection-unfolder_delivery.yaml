@@ -8,4 +8,6 @@ env:
   WRITER_HEALTH_URI: http://content-collection-rw-neo4j:8080/__health
   CONTENT_RESOLVER_URI: http://document-store-api:8080/content/
   CONTENT_RESOLVER_HEALTH_URI: http://document-store-api:8080/__health
+  RELATIONS_RESOLVER_URI: http://relations-api:8080/contentcollection/{uuid}/relations
+  RELATIONS_RESOLVER_HEALTH_URI: http://relations-api:8080/__health
   Q_WRITE_TOPIC: PostPublicationEvents

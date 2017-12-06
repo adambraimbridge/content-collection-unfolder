@@ -3,14 +3,15 @@ package resolver
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/uuid-utils-go"
 	"time"
+
+	"github.com/Financial-Times/uuid-utils-go"
 )
 
 const dateTimeFormat = "2006-01-02T15:04:05.000Z0700"
 
 type UuidsAndDateResolver interface {
-	Resolve(reqData []byte, respData []byte) (UuidsAndDate, error)
+	Resolve(reqData []byte) (UuidsAndDate, error)
 }
 
 type UuidsAndDate struct {
@@ -25,7 +26,7 @@ func NewUuidResolver() UuidsAndDateResolver {
 	return &fromRequestResolver{}
 }
 
-func (r *fromRequestResolver) Resolve(reqData []byte, respData []byte) (UuidsAndDate, error) {
+func (r *fromRequestResolver) Resolve(reqData []byte) (UuidsAndDate, error) {
 	cc := contentCollection{}
 	err := json.Unmarshal(reqData, &cc)
 	if err != nil {
@@ -68,8 +69,10 @@ func resolveLastModified(cc contentCollection) (string, error) {
 }
 
 type contentCollection struct {
-	LastModified string                  `json:"lastModified"`
-	Items        []contentCollectionItem `json:"items"`
+	UUID             string                  `json:"uuid"`
+	Items            []contentCollectionItem `json:"items"`
+	PublishReference string                  `json:"publishReference"`
+	LastModified     string                  `json:"lastModified"`
 }
 
 type contentCollectionItem struct {
