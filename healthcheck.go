@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
@@ -40,12 +41,15 @@ func newHealthService(config *healthConfig) *healthService {
 	return &service
 }
 
-func (service *healthService) buildHealthCheck() health.HealthCheck {
-	return health.HealthCheck{
-		SystemCode:  service.config.appSystemCode,
-		Name:        service.config.appName,
-		Description: service.config.appDesc,
-		Checks:      service.checks,
+func (service *healthService) buildHealthCheck() health.HC {
+	return health.TimedHealthCheck{
+		HealthCheck: health.HealthCheck{
+			SystemCode:  service.config.appSystemCode,
+			Name:        service.config.appName,
+			Description: service.config.appDesc,
+			Checks:      service.checks,
+		},
+		Timeout: 10 * time.Second,
 	}
 }
 

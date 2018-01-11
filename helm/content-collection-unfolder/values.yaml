@@ -9,6 +9,8 @@ image:
   repository: coco/content-collection-unfolder
   pullPolicy: IfNotPresent
 resources:
+  requests:
+    memory: 15Mi
   limits:
     memory: 64Mi
 env:
