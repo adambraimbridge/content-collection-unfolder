@@ -27,7 +27,7 @@ func TestHeadersAndBodyAreOk(t *testing.T) {
 	uuid := gouuid.NewV4().String()
 	contentArr := map[string]interface{}{"uuid": uuid}
 
-	cp.Send(tid, lastModified, []map[string]interface{}{contentArr}, map[string]bool{uuid: false})
+	cp.Send(tid, lastModified, []map[string]interface{}{contentArr})
 
 	mp.AssertCalled(t, "SendMessage",
 		mock.MatchedBy(func(key string) bool {
@@ -64,15 +64,14 @@ func TestEmptyUuidsArrSkips(t *testing.T) {
 	tid := transactionidutils.NewTransactionID()
 	lastModified := time.Now().Format(timeFormat)
 	var contentsArr []map[string]interface{}
-	var isDeletedMap map[string]bool
 
-	cp.Send(tid, lastModified, contentsArr, isDeletedMap)
+	cp.Send(tid, lastModified, contentsArr)
 
 	mp.AssertNotCalled(t, "SendMessage", mock.Anything, mock.Anything)
 }
 
 func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
-	headerIds := []string{}
+	var headerIds []string
 
 	mp := new(mockProducer)
 	mp.On("SendMessage",
@@ -89,40 +88,12 @@ func TestMultipleMessagesHaveDifferentIds(t *testing.T) {
 
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}}, map[string]bool{uuid1: false, uuid2: false})
+		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}})
 
 	mp.AssertNumberOfCalls(t, "SendMessage", 2)
 
 	assert.Equal(t, 2, len(headerIds))
 	assert.NotEqual(t, headerIds[0], headerIds[1])
-}
-
-func TestIsDeletedTrueNotSettingPayload(t *testing.T) {
-	mp := new(mockProducer)
-	mp.On("SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message")).Return(nil)
-
-	cp := NewContentProducer(mp)
-
-	tid := transactionidutils.NewTransactionID()
-	lastModified := time.Now().Format(timeFormat)
-	uuid := gouuid.NewV4().String()
-	contentArr := map[string]interface{}{"uuid": uuid}
-
-	cp.Send(tid, lastModified, []map[string]interface{}{contentArr}, map[string]bool{uuid: true})
-
-	mp.AssertCalled(t, "SendMessage",
-		mock.MatchedBy(func(key string) bool {
-			assert.Equal(t, "", key)
-			return true
-		}),
-		mock.MatchedBy(func(msg producer.Message) bool {
-			body := unmarshall(msg.Body)
-			assert.Equal(t, nil, body["payload"])
-
-			return true
-		}),
-	)
-	mp.AssertNumberOfCalls(t, "SendMessage", 1)
 }
 
 func TestFailedUuidExtractionCausesSkip(t *testing.T) {
@@ -132,7 +103,7 @@ func TestFailedUuidExtractionCausesSkip(t *testing.T) {
 
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{}, {"uuid": 123}, {"uuid": "1234"}}, map[string]bool{"123": false, "1234": false})
+		[]map[string]interface{}{{}, {"uuid": 123}, {"uuid": "1234"}})
 
 	mp.AssertNotCalled(t, "SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message"))
 }
@@ -148,12 +119,10 @@ func TestSendFailureDoesNotStopProducer(t *testing.T) {
 
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}},
-		map[string]bool{uuid1: false, uuid2: false})
+		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}})
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}},
-		map[string]bool{uuid1: false, uuid2: false})
+		[]map[string]interface{}{{"uuid": uuid1}, {"uuid": uuid2}})
 
 	mp.AssertNumberOfCalls(t, "SendMessage", 4)
 }
@@ -167,8 +136,7 @@ func TestMarshallErrorsCauseSkip(t *testing.T) {
 
 	cp.Send(transactionidutils.NewTransactionID(),
 		time.Now().Format(timeFormat),
-		[]map[string]interface{}{{"uuid": uuid1, "dude, what?": func() {}}},
-		map[string]bool{uuid1: false, "dude, what?": false})
+		[]map[string]interface{}{{"uuid": uuid1, "dude, what?": func() {}}})
 
 	mp.AssertNotCalled(t, "SendMessage", mock.AnythingOfType("string"), mock.AnythingOfType("producer.Message"))
 }

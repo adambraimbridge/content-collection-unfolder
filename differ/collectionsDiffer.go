@@ -1,7 +1,7 @@
 package differ
 
 type CollectionsDiffer interface {
-	Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool)
+	Diff(incomingCollectionUuids []string, oldCollectionUuids []string) *Set
 }
 
 type defaultCollectionsDiffer struct {
@@ -11,25 +11,24 @@ func NewDefaultCollectionsDiffer() *defaultCollectionsDiffer {
 	return &defaultCollectionsDiffer{}
 }
 
-func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool) {
-	diffCol := make(map[string]bool)
+func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) *Set {
+	diffSet := NewSet()
 
-	oneWayDiff(incomingCollectionUuids, oldCollectionUuids, false, diffCol)
-	oneWayDiff(oldCollectionUuids, incomingCollectionUuids, true, diffCol)
+	oneWayDiff(incomingCollectionUuids, oldCollectionUuids, diffSet)
+	oneWayDiff(oldCollectionUuids, incomingCollectionUuids, diffSet)
 
-	return diffCol
+	return diffSet
 }
 
-func oneWayDiff(firstCollection []string, secondCollection []string, markDeleted bool, mapToAdd map[string]bool) {
-	secondCollectionTemp := make(map[string]struct{})
-	var exists = struct{}{}
+func oneWayDiff(firstCollection []string, secondCollection []string, setToAdd *Set) {
+	secondColSet := NewSet()
 	for _, secondColUuid := range secondCollection {
-		secondCollectionTemp[secondColUuid] = exists
+		secondColSet.Add(secondColUuid)
 	}
 
 	for _, firstColUuid := range firstCollection {
-		if _, ok := secondCollectionTemp[firstColUuid]; !ok {
-			mapToAdd[firstColUuid] = markDeleted
+		if !secondColSet.Contains(firstColUuid) {
+			setToAdd.Add(firstColUuid)
 		}
 	}
 }

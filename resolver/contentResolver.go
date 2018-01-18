@@ -10,7 +10,7 @@ import (
 )
 
 type ContentResolver interface {
-	ResolveContents(diffUuids map[string]bool, tid string) ([]map[string]interface{}, error)
+	ResolveContents(diffUuids []string, tid string) ([]map[string]interface{}, error)
 }
 
 type defaultContentResolver struct {
@@ -22,7 +22,7 @@ func NewContentResolver(client *http.Client, contentResolverAppURI string) Conte
 	return &defaultContentResolver{contentResolverAppURI: contentResolverAppURI, httpClient: client}
 }
 
-func (cr *defaultContentResolver) ResolveContents(diffUuids map[string]bool, tid string) ([]map[string]interface{}, error) {
+func (cr *defaultContentResolver) ResolveContents(diffUuids []string, tid string) ([]map[string]interface{}, error) {
 	resp, err := cr.callContentResolverApp(diffUuids, tid)
 	if err != nil {
 		return nil, fmt.Errorf("Error calling on url [%v] for content, error was: [%v]", cr.contentResolverAppURI, err.Error())
@@ -47,7 +47,7 @@ func (cr *defaultContentResolver) ResolveContents(diffUuids map[string]bool, tid
 	return contents, nil
 }
 
-func (cr *defaultContentResolver) callContentResolverApp(diffUuids map[string]bool, tid string) (*http.Response, error) {
+func (cr *defaultContentResolver) callContentResolverApp(diffUuids []string, tid string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, cr.contentResolverAppURI, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating request to uri=[%v], transaction_id=[%v].", cr.contentResolverAppURI, tid)
@@ -57,7 +57,7 @@ func (cr *defaultContentResolver) callContentResolverApp(diffUuids map[string]bo
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	httpQuery := req.URL.Query()
-	for key := range diffUuids {
+	for _, key := range diffUuids {
 		httpQuery.Add("uuid", key)
 	}
 	req.URL.RawQuery = httpQuery.Encode()

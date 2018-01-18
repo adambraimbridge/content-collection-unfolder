@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Financial-Times/content-collection-unfolder/differ"
 	"github.com/Financial-Times/content-collection-unfolder/forwarder"
 	"github.com/Financial-Times/content-collection-unfolder/relations"
 	"github.com/Financial-Times/content-collection-unfolder/resolver"
@@ -41,14 +42,14 @@ func TestInvalidUuid(t *testing.T) {
 	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestUuidResolverError(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	mur.On("Resolve", mock.Anything).
-		Return(resolver.UuidsAndDate{}, errors.New("Uuid resolver error"))
+		Return(resolver.UuidsAndDate{}, errors.New("uuid resolver error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -73,7 +74,7 @@ func TestUuidResolverError(t *testing.T) {
 	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestRelationsResolverError(t *testing.T) {
@@ -87,7 +88,7 @@ func TestRelationsResolverError(t *testing.T) {
 		Return(uuidsAndDate, nil)
 
 	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&relations.CCRelations{}, errors.New("Relations resolver error"))
+		Return(&relations.CCRelations{}, errors.New("relations resolver error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -121,7 +122,7 @@ func TestRelationsResolverError(t *testing.T) {
 	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestForwarderError(t *testing.T) {
@@ -141,12 +142,14 @@ func TestForwarderError(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
+	diffUuidsSet := differ.NewSet()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+		Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{}, errors.New("Forwarder error"))
+		Return(forwarder.ForwarderResponse{}, errors.New("forwarder error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -206,7 +209,7 @@ func TestForwarderError(t *testing.T) {
 		}))
 
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestForwarderNon200Response(t *testing.T) {
@@ -226,13 +229,14 @@ func TestForwarderNon200Response(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
+	diffUuidsSet := differ.NewSet()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+		Return(diffUuidsSet)
 
-	fwResp := forwarder.ForwarderResponse{http.StatusUnprocessableEntity, []byte(errorJson)}
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(fwResp, nil)
+	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJson)}
+	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fwResp, nil)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -296,7 +300,7 @@ func TestForwarderNon200Response(t *testing.T) {
 		}))
 
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestNotWhitelistedCollectionType(t *testing.T) {
@@ -316,9 +320,10 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+	diffUuidsSet := differ.NewSet()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
+	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -381,7 +386,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 		}))
 
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestContentResolverError(t *testing.T) {
@@ -401,15 +406,16 @@ func TestContentResolverError(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+	diffUuidsSet := differ.NewSet()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
+	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
 
 	mcr.On("ResolveContents", mock.Anything, mock.Anything).
-		Return([]map[string]interface{}{}, errors.New("Content resolver error"))
+		Return([]map[string]interface{}{}, errors.New("content resolver error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -469,9 +475,10 @@ func TestContentResolverError(t *testing.T) {
 		}))
 
 	mcr.AssertCalled(t, "ResolveContents",
-		mock.MatchedBy(func(actualDiffUuids map[string]bool) bool {
-			diffUuids[leadArticleUuid] = false
-			assert.Equal(t, diffUuids, actualDiffUuids)
+		mock.MatchedBy(func(actualDiffUuids []string) bool {
+			for _, uuid := range actualDiffUuids {
+				assert.True(t, diffUuidsSet.Contains(uuid))
+			}
 			return true
 		}),
 		mock.MatchedBy(func(actualTid string) bool {
@@ -479,7 +486,7 @@ func TestContentResolverError(t *testing.T) {
 			return true
 		}))
 
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestAllOk(t *testing.T) {
@@ -499,9 +506,10 @@ func TestAllOk(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+	diffUuidsSet := differ.NewSet()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
+	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -574,9 +582,10 @@ func TestAllOk(t *testing.T) {
 		}))
 
 	mcr.AssertCalled(t, "ResolveContents",
-		mock.MatchedBy(func(actualDiffUuids map[string]bool) bool {
-			diffUuids[leadArticleUuid] = false
-			assert.Equal(t, diffUuids, actualDiffUuids)
+		mock.MatchedBy(func(actualDiffUuids []string) bool {
+			for _, uuid := range actualDiffUuids {
+				assert.True(t, diffUuidsSet.Contains(uuid))
+			}
 			return true
 		}),
 		mock.MatchedBy(func(actualTid string) bool {
@@ -596,11 +605,6 @@ func TestAllOk(t *testing.T) {
 		mock.MatchedBy(func(actualContentArr []map[string]interface{}) bool {
 			assert.Equal(t, contentArr, actualContentArr)
 			return true
-		}),
-		mock.MatchedBy(func(actualIsDeletedMap map[string]bool) bool {
-			diffUuids[leadArticleUuid] = false
-			assert.Equal(t, diffUuids, actualIsDeletedMap)
-			return true
 		}))
 }
 
@@ -618,9 +622,11 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := map[string]bool{firstExistingItemUuid: false, secondExistingItemUuid: false, addedItemUuid: false}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+	diffUuidsSet := differ.NewSet()
+	diffUuidsSet.Add(firstExistingItemUuid)
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
+	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -693,8 +699,11 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 		}))
 
 	mcr.AssertCalled(t, "ResolveContents",
-		mock.MatchedBy(func(actualDiffUuids map[string]bool) bool {
-			assert.Equal(t, diffUuids, actualDiffUuids)
+		mock.MatchedBy(func(actualDiffUuids []string) bool {
+			for _, uuid := range actualDiffUuids {
+				assert.True(t, diffUuidsSet.Contains(uuid))
+			}
+			assert.False(t, contains(actualDiffUuids, leadArticleUuid))
 			return true
 		}),
 		mock.MatchedBy(func(actualTid string) bool {
@@ -714,10 +723,6 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 		mock.MatchedBy(func(actualContentArr []map[string]interface{}) bool {
 			assert.Equal(t, contentArr, actualContentArr)
 			return true
-		}),
-		mock.MatchedBy(func(actualIsDeletedMap map[string]bool) bool {
-			assert.Equal(t, diffUuids, actualIsDeletedMap)
-			return true
 		}))
 }
 
@@ -735,9 +740,9 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuids := make(map[string]bool)
+	diffUuidsSet := differ.NewSet()
 	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
+		Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -800,7 +805,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 		}))
 
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestMarshallingErrorIs500(t *testing.T) {
@@ -857,7 +862,7 @@ type mockContentResolver struct {
 	mock.Mock
 }
 
-func (mcr *mockContentResolver) ResolveContents(diffUuids map[string]bool, tid string) ([]map[string]interface{}, error) {
+func (mcr *mockContentResolver) ResolveContents(diffUuids []string, tid string) ([]map[string]interface{}, error) {
 	args := mcr.Called(diffUuids, tid)
 	return args.Get(0).([]map[string]interface{}), args.Error(1)
 }
@@ -866,8 +871,8 @@ type mockContentProducer struct {
 	mock.Mock
 }
 
-func (mcp *mockContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}, isDeleted map[string]bool) {
-	mcp.Called(tid, lastModified, contents, isDeleted)
+func (mcp *mockContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}) {
+	mcp.Called(tid, lastModified, contents)
 	return
 }
 
@@ -884,7 +889,16 @@ type mockCollectionsDiffer struct {
 	mock.Mock
 }
 
-func (mcd *mockCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool) {
+func (mcd *mockCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) *differ.Set {
 	args := mcd.Called(incomingCollectionUuids, oldCollectionUuids)
-	return args.Get(0).(map[string]bool)
+	return args.Get(0).(*differ.Set)
+}
+
+func contains(values []string, valueToCheck string) bool {
+	for _, value := range values {
+		if valueToCheck == value {
+			return true
+		}
+	}
+	return false
 }

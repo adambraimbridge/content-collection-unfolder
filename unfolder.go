@@ -90,7 +90,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	diffUuidsMap := u.collectionsDiffer.Diff(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
+	diffUuidsSet := u.collectionsDiffer.Diff(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
 
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {
@@ -112,23 +112,24 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	if oldCollectionRelations.ContainedIn != "" {
-		diffUuidsMap[oldCollectionRelations.ContainedIn] = false
+		diffUuidsSet.Add(oldCollectionRelations.ContainedIn)
 	}
 
-	if len(diffUuidsMap) == 0 {
+	diffUUids := diffUuidsSet.ToSlice()
+	if len(diffUUids) == 0 {
 		log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. No uuids to resolve after diff was done.", tid, uuid, collectionType)
 		writeResponse(writer, http.StatusOK, fwResp.ResponseBody)
 		return
 	}
 
-	resolvedContentArr, err := u.contentRes.ResolveContents(diffUuidsMap, tid)
+	resolvedContentArr, err := u.contentRes.ResolveContents(diffUUids, tid)
 	if err != nil {
 		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while resolving contents: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
-	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr, diffUuidsMap)
+	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr)
 }
 
 func extractPathVariables(req *http.Request) (string, string) {
