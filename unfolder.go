@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/uuid-utils-go"
 	log "github.com/Sirupsen/logrus"
+	"github.com/Workiva/go-datastructures/set"
 	"github.com/gorilla/mux"
 )
 
@@ -115,14 +117,13 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		diffUuidsSet.Add(oldCollectionRelations.ContainedIn)
 	}
 
-	diffUUids := diffUuidsSet.ToSlice()
-	if len(diffUUids) == 0 {
+	if diffUuidsSet.Len() == 0 {
 		log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. No uuids to resolve after diff was done.", tid, uuid, collectionType)
 		writeResponse(writer, http.StatusOK, fwResp.ResponseBody)
 		return
 	}
 
-	resolvedContentArr, err := u.contentRes.ResolveContents(diffUUids, tid)
+	resolvedContentArr, err := u.contentRes.ResolveContents(flattenToStringSlice(diffUuidsSet), tid)
 	if err != nil {
 		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while resolving contents: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
@@ -130,6 +131,14 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr)
+}
+
+func flattenToStringSlice(set *set.Set) []string {
+	stringSlice := make([]string, set.Len())
+	for i, v := range set.Flatten() {
+		stringSlice[i] = fmt.Sprint(v)
+	}
+	return stringSlice
 }
 
 func extractPathVariables(req *http.Request) (string, string) {

@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Financial-Times/content-collection-unfolder/differ"
 	"github.com/Financial-Times/content-collection-unfolder/forwarder"
 	"github.com/Financial-Times/content-collection-unfolder/relations"
 	"github.com/Financial-Times/content-collection-unfolder/resolver"
 	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Workiva/go-datastructures/set"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -142,7 +142,7 @@ func TestForwarderError(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).
@@ -229,7 +229,7 @@ func TestForwarderNon200Response(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).
@@ -320,7 +320,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
@@ -406,7 +406,7 @@ func TestContentResolverError(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
@@ -477,7 +477,7 @@ func TestContentResolverError(t *testing.T) {
 	mcr.AssertCalled(t, "ResolveContents",
 		mock.MatchedBy(func(actualDiffUuids []string) bool {
 			for _, uuid := range actualDiffUuids {
-				assert.True(t, diffUuidsSet.Contains(uuid))
+				assert.True(t, diffUuidsSet.Exists(uuid))
 			}
 			return true
 		}),
@@ -506,7 +506,7 @@ func TestAllOk(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
 	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
@@ -584,7 +584,7 @@ func TestAllOk(t *testing.T) {
 	mcr.AssertCalled(t, "ResolveContents",
 		mock.MatchedBy(func(actualDiffUuids []string) bool {
 			for _, uuid := range actualDiffUuids {
-				assert.True(t, diffUuidsSet.Contains(uuid))
+				assert.True(t, diffUuidsSet.Exists(uuid))
 			}
 			return true
 		}),
@@ -622,7 +622,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	diffUuidsSet.Add(firstExistingItemUuid)
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
@@ -701,7 +701,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 	mcr.AssertCalled(t, "ResolveContents",
 		mock.MatchedBy(func(actualDiffUuids []string) bool {
 			for _, uuid := range actualDiffUuids {
-				assert.True(t, diffUuidsSet.Contains(uuid))
+				assert.True(t, diffUuidsSet.Exists(uuid))
 			}
 			assert.False(t, contains(actualDiffUuids, leadArticleUuid))
 			return true
@@ -740,7 +740,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 	mrr.On("Resolve", mock.Anything, mock.Anything).
 		Return(&oldRelations, nil)
 
-	diffUuidsSet := differ.NewSet()
+	diffUuidsSet := set.New()
 	mcd.On("Diff", mock.Anything, mock.Anything).
 		Return(diffUuidsSet)
 
@@ -889,9 +889,9 @@ type mockCollectionsDiffer struct {
 	mock.Mock
 }
 
-func (mcd *mockCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) *differ.Set {
+func (mcd *mockCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) *set.Set {
 	args := mcd.Called(incomingCollectionUuids, oldCollectionUuids)
-	return args.Get(0).(*differ.Set)
+	return args.Get(0).(*set.Set)
 }
 
 func contains(values []string, valueToCheck string) bool {
