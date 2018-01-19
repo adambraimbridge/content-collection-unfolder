@@ -36,7 +36,8 @@ func (f *defaultForwarder) Forward(tid string, uuid string, collectionType strin
 	if err != nil {
 		return ForwarderResponse{}, err
 	}
-	req.Header.Add("Content-Type", "application/json;charset=utf-8")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "UPP content-collection-unfolder")
 	req.Header.Add(transactionidutils.TransactionIDHeader, tid)
 
 	resp, err := f.client.Do(req)

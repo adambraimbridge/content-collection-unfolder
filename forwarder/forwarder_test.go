@@ -26,7 +26,7 @@ func mockWriter(t *testing.T, respStatus int) *httptest.Server {
 
 	router.HandleFunc(mockTestPath, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, testTid, transactionidutils.GetTransactionIDFromRequest(r))
-		assert.Equal(t, r.Header.Get("Content-Type"), "application/json;charset=utf-8")
+		assert.Equal(t, r.Header.Get("Content-Type"), "application/json")
 
 		vars := mux.Vars(r)
 		assert.Equal(t, testUuid, vars["uuid"])
