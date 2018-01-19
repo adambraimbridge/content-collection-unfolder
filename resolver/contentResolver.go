@@ -54,7 +54,8 @@ func (cr *defaultContentResolver) callContentResolverApp(diffUuids []string, tid
 	}
 
 	req.Header.Set(transactionidutils.TransactionIDHeader, tid)
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "UPP Content Collection Unfolder")
 
 	httpQuery := req.URL.Query()
 	for _, key := range diffUuids {

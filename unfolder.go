@@ -92,7 +92,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	diffUuidsSet := u.collectionsDiffer.Diff(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
+	diffUuidsSet := u.collectionsDiffer.SymmetricDifference(uuidsAndDate.UuidArr, oldCollectionRelations.Contains)
 
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {

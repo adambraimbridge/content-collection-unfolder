@@ -17,7 +17,7 @@ func TestCollectionDiffer_Diff_Ok(t *testing.T) {
 	expectedDiffSet.Add("79b5a80e-96a7-4ac8-b168-5406910de419")
 	expectedDiffSet.Add("ef0d9b7f-c3e9-4692-9e62-1a38789af24a")
 
-	actualDiffCol := collectionsDiffer.Diff(incomingCol, oldCol)
+	actualDiffCol := collectionsDiffer.SymmetricDifference(incomingCol, oldCol)
 
 	assert.Equal(t, expectedDiffSet, actualDiffCol)
 }
@@ -31,7 +31,7 @@ func TestCollectionDiffer_Diff_EmptyIncomingCol_Ok(t *testing.T) {
 	expectedDiffSet.Add("9e917253-10d2-46d8-ab3b-b510dc3a7abf")
 	expectedDiffSet.Add("ef0d9b7f-c3e9-4692-9e62-1a38789af24a")
 
-	actualDiffCol := collectionsDiffer.Diff(incomingCol, oldCol)
+	actualDiffCol := collectionsDiffer.SymmetricDifference(incomingCol, oldCol)
 
 	assert.Equal(t, expectedDiffSet, actualDiffCol)
 }
@@ -45,7 +45,7 @@ func TestCollectionDiffer_Diff_EmptyOldCol_Ok(t *testing.T) {
 	expectedDiffSet.Add("9e917253-10d2-46d8-ab3b-b510dc3a7abf")
 	expectedDiffSet.Add("ef0d9b7f-c3e9-4692-9e62-1a38789af24a")
 
-	actualDiffCol := collectionsDiffer.Diff(incomingCol, oldCol)
+	actualDiffCol := collectionsDiffer.SymmetricDifference(incomingCol, oldCol)
 
 	assert.Equal(t, expectedDiffSet, actualDiffCol)
 }
@@ -57,7 +57,7 @@ func TestCollectionDiffer_Diff_SameCollections_Ok(t *testing.T) {
 	oldCol := []string{"9e917253-10d2-46d8-ab3b-b510dc3a7abf", "ef0d9b7f-c3e9-4692-9e62-1a38789af24a"}
 	expectedDiffSet := set.New()
 
-	actualDiffCol := collectionsDiffer.Diff(incomingCol, oldCol)
+	actualDiffCol := collectionsDiffer.SymmetricDifference(incomingCol, oldCol)
 
 	assert.Equal(t, expectedDiffSet, actualDiffCol)
 }
@@ -69,7 +69,7 @@ func TestCollectionDiffer_Diff_EmptyCollections_Ok(t *testing.T) {
 	var oldCol []string
 	expectedDiffSet := set.New()
 
-	actualDiffCol := collectionsDiffer.Diff(incomingCol, oldCol)
+	actualDiffCol := collectionsDiffer.SymmetricDifference(incomingCol, oldCol)
 
 	assert.Equal(t, expectedDiffSet, actualDiffCol)
 }

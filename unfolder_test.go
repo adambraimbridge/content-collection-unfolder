@@ -39,7 +39,7 @@ func TestInvalidUuid(t *testing.T) {
 
 	mur.AssertNotCalled(t, "Resolve", mock.Anything)
 	mrr.AssertNotCalled(t, "Resolve", mock.Anything, mock.Anything)
-	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
+	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
@@ -71,7 +71,7 @@ func TestUuidResolverError(t *testing.T) {
 		}))
 
 	mrr.AssertNotCalled(t, "Resolve", mock.Anything, mock.Anything)
-	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
+	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
@@ -119,7 +119,7 @@ func TestRelationsResolverError(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
+	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
@@ -145,7 +145,7 @@ func TestForwarderError(t *testing.T) {
 	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-	mcd.On("Diff", mock.Anything, mock.Anything).
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).
 		Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -180,7 +180,7 @@ func TestForwarderError(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -232,7 +232,7 @@ func TestForwarderNon200Response(t *testing.T) {
 	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-	mcd.On("Diff", mock.Anything, mock.Anything).
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).
 		Return(diffUuidsSet)
 
 	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJson)}
@@ -271,7 +271,7 @@ func TestForwarderNon200Response(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -323,7 +323,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -357,7 +357,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -409,7 +409,7 @@ func TestContentResolverError(t *testing.T) {
 	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -446,7 +446,7 @@ func TestContentResolverError(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -509,7 +509,7 @@ func TestAllOk(t *testing.T) {
 	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -553,7 +553,7 @@ func TestAllOk(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -626,7 +626,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 	diffUuidsSet.Add(firstExistingItemUuid)
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-	mcd.On("Diff", mock.Anything, mock.Anything).Return(diffUuidsSet)
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -670,7 +670,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -741,7 +741,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 		Return(&oldRelations, nil)
 
 	diffUuidsSet := set.New()
-	mcd.On("Diff", mock.Anything, mock.Anything).
+	mcd.On("SymmetricDifference", mock.Anything, mock.Anything).
 		Return(diffUuidsSet)
 
 	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -776,7 +776,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 			return true
 		}))
 
-	mcd.AssertCalled(t, "Diff",
+	mcd.AssertCalled(t, "SymmetricDifference",
 		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
 			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
 			return true
@@ -889,7 +889,7 @@ type mockCollectionsDiffer struct {
 	mock.Mock
 }
 
-func (mcd *mockCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) *set.Set {
+func (mcd *mockCollectionsDiffer) SymmetricDifference(incomingCollectionUuids []string, oldCollectionUuids []string) *set.Set {
 	args := mcd.Called(incomingCollectionUuids, oldCollectionUuids)
 	return args.Get(0).(*set.Set)
 }
