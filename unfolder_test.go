@@ -174,7 +174,6 @@ func TestForwarderNon200Response(t *testing.T) {
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
 
-	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJson)}
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -192,6 +191,7 @@ func TestForwarderNon200Response(t *testing.T) {
 		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
 		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
 		Return(diffUuidsSet)
+	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJson)}
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
 		mock.MatchedBy(expectString(t, collectionUuid)),
