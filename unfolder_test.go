@@ -99,8 +99,7 @@ func TestRelationsResolverError(t *testing.T) {
 
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr)
 	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
@@ -151,10 +150,7 @@ func TestForwarderError(t *testing.T) {
 
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
@@ -173,7 +169,6 @@ func TestForwarderNon200Response(t *testing.T) {
 	diffUuidsSet := set.New()
 	diffUuidsSet.Add(addedItemUuid)
 	diffUuidsSet.Add(deletedItemUuid)
-
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -209,10 +204,7 @@ func TestForwarderNon200Response(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, fwResp.ResponseBody, respBody)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
@@ -267,10 +259,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 			return true
 		}))
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
@@ -323,11 +312,7 @@ func TestContentResolverError(t *testing.T) {
 
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
-	mcr.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf, mcr)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -389,12 +374,7 @@ func TestAllOk(t *testing.T) {
 
 	verifyResponse(t, http.StatusOK, tid, resp)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
-	mcr.AssertExpectations(t)
-	mcp.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf, mcr, mcp)
 }
 
 func TestAllOk_NoLeadArticleRelation(t *testing.T) {
@@ -458,12 +438,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 
 	verifyResponse(t, http.StatusOK, tid, resp)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
-	mcr.AssertExpectations(t)
-	mcp.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf, mcr, mcp)
 }
 
 func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
@@ -505,10 +480,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 
 	verifyResponse(t, http.StatusOK, tid, resp)
 
-	mur.AssertExpectations(t)
-	mrr.AssertExpectations(t)
-	mcd.AssertExpectations(t)
-	mf.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
