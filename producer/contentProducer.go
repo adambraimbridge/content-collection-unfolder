@@ -17,7 +17,7 @@ const (
 )
 
 type ContentProducer interface {
-	Send(tid string, lastModified string, contents []map[string]interface{}, isDeleted map[string]bool)
+	Send(tid string, lastModified string, contents []map[string]interface{})
 }
 
 type defaultContentProducer struct {
@@ -30,21 +30,21 @@ func NewContentProducer(msgProducer producer.MessageProducer) ContentProducer {
 	}
 }
 
-func (p *defaultContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}, isDeleted map[string]bool) {
+func (p *defaultContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}) {
 	for _, content := range contents {
 		logEntry := log.WithField("tid", tid)
 		uuid, err := extractUuid(content)
 		if err != nil {
 			logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		} else {
-			p.sendSingleMessage(tid, uuid, content, isDeleted[uuid], lastModified)
+			p.sendSingleMessage(tid, uuid, content, lastModified)
 		}
 	}
 }
 
-func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, content map[string]interface{}, deleted bool, lastModified string) {
+func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, content map[string]interface{}, lastModified string) {
 	logEntry := log.WithField("tid", tid).WithField("uuid", uuid)
-	msg, err := buildMessage(tid, uuid, lastModified, content, deleted)
+	msg, err := buildMessage(tid, uuid, lastModified, content)
 	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		return
@@ -75,15 +75,12 @@ func extractUuid(content map[string]interface{}) (string, error) {
 	return uuid, nil
 }
 
-func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}, deleted bool) (*producer.Message, error) {
+func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
 	body := publicationMessageBody{
 		ContentURI:   uriBase + uuid,
 		LastModified: lastModified,
 	}
-
-	if !deleted {
-		body.Payload = content
-	}
+	body.Payload = content
 
 	bodyAsString, err := body.toJson()
 	if err != nil {

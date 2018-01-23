@@ -139,7 +139,7 @@ func TestEndToEndFlow(t *testing.T) {
 	assert.Equal(t, 3, len(messageProducer.received))
 	allMessages := strings.Join(messageProducer.received, "")
 	assert.Equal(t, 2, strings.Count(allMessages, addedItemUuid))
-	assert.Equal(t, 1, strings.Count(allMessages, deletedItemUuid)) //payload is empty so no uuid in payload
+	assert.Equal(t, 2, strings.Count(allMessages, deletedItemUuid))
 	assert.Equal(t, 2, strings.Count(allMessages, leadArticleUuid))
 }
 

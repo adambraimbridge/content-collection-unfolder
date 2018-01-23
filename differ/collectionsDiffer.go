@@ -1,7 +1,9 @@
 package differ
 
+import "github.com/Workiva/go-datastructures/set"
+
 type CollectionsDiffer interface {
-	Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool)
+	SymmetricDifference(incomingCollectionUuids []string, oldCollectionUuids []string) *set.Set
 }
 
 type defaultCollectionsDiffer struct {
@@ -11,25 +13,24 @@ func NewDefaultCollectionsDiffer() *defaultCollectionsDiffer {
 	return &defaultCollectionsDiffer{}
 }
 
-func (dcd *defaultCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool) {
-	diffCol := make(map[string]bool)
+func (dcd *defaultCollectionsDiffer) SymmetricDifference(incomingCollectionUuids []string, oldCollectionUuids []string) *set.Set {
+	symDiffSet := set.New()
 
-	oneWayDiff(incomingCollectionUuids, oldCollectionUuids, false, diffCol)
-	oneWayDiff(oldCollectionUuids, incomingCollectionUuids, true, diffCol)
+	relativeComplement(incomingCollectionUuids, oldCollectionUuids, symDiffSet)
+	relativeComplement(oldCollectionUuids, incomingCollectionUuids, symDiffSet)
 
-	return diffCol
+	return symDiffSet
 }
 
-func oneWayDiff(firstCollection []string, secondCollection []string, markDeleted bool, mapToAdd map[string]bool) {
-	secondCollectionTemp := make(map[string]struct{})
-	var exists = struct{}{}
+func relativeComplement(firstCollection []string, secondCollection []string, aggregatingSet *set.Set) {
+	secondColSet := set.New()
 	for _, secondColUuid := range secondCollection {
-		secondCollectionTemp[secondColUuid] = exists
+		secondColSet.Add(secondColUuid)
 	}
 
 	for _, firstColUuid := range firstCollection {
-		if _, ok := secondCollectionTemp[firstColUuid]; !ok {
-			mapToAdd[firstColUuid] = markDeleted
+		if !secondColSet.Exists(firstColUuid) {
+			aggregatingSet.Add(firstColUuid)
 		}
 	}
 }

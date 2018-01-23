@@ -11,6 +11,7 @@ import (
 	"github.com/Financial-Times/content-collection-unfolder/relations"
 	"github.com/Financial-Times/content-collection-unfolder/resolver"
 	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Workiva/go-datastructures/set"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -38,17 +39,14 @@ func TestInvalidUuid(t *testing.T) {
 
 	mur.AssertNotCalled(t, "Resolve", mock.Anything)
 	mrr.AssertNotCalled(t, "Resolve", mock.Anything, mock.Anything)
-	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
+	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestUuidResolverError(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
-
-	mur.On("Resolve", mock.Anything).
-		Return(resolver.UuidsAndDate{}, errors.New("Uuid resolver error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -57,23 +55,21 @@ func TestUuidResolverError(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).
+		Return(resolver.UuidsAndDate{}, errors.New("uuid resolver error"))
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusBadRequest, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
+	mur.AssertExpectations(t)
 	mrr.AssertNotCalled(t, "Resolve", mock.Anything, mock.Anything)
-	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
+	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestRelationsResolverError(t *testing.T) {
@@ -83,11 +79,6 @@ func TestRelationsResolverError(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything).
-		Return(uuidsAndDate, nil)
-
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&relations.CCRelations{}, errors.New("Relations resolver error"))
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -96,32 +87,23 @@ func TestRelationsResolverError(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&relations.CCRelations{}, errors.New("relations resolver error"))
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertNotCalled(t, "Diff", mock.Anything, mock.Anything)
+	mock.AssertExpectationsForObjects(t, mur, mrr)
+	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestForwarderError(t *testing.T) {
@@ -131,22 +113,13 @@ func TestForwarderError(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{
 		ContainedIn: leadArticleUuid,
 		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
 	}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{}, errors.New("Forwarder error"))
+	diffUuidsSet := set.New()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -155,58 +128,31 @@ func TestForwarderError(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, whitelistedCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(forwarder.ForwarderResponse{}, errors.New("forwarder error"))
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, whitelistedCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestForwarderNon200Response(t *testing.T) {
@@ -216,23 +162,13 @@ func TestForwarderNon200Response(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{
 		ContainedIn: leadArticleUuid,
 		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
 	}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	fwResp := forwarder.ForwarderResponse{http.StatusUnprocessableEntity, []byte(errorJson)}
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(fwResp, nil)
+	diffUuidsSet := set.New()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -240,6 +176,23 @@ func TestForwarderNon200Response(t *testing.T) {
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJson)}
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, whitelistedCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(fwResp, nil)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -251,52 +204,9 @@ func TestForwarderNon200Response(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, fwResp.ResponseBody, respBody)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, whitelistedCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestNotWhitelistedCollectionType(t *testing.T) {
@@ -306,22 +216,13 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{
 		ContainedIn: leadArticleUuid,
 		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
 	}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+	diffUuidsSet := set.New()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -329,6 +230,22 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, ignoredCollection, collectionUuid, body, tid)
+
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, ignoredCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -342,46 +259,9 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 			return true
 		}))
 
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, ignoredCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestContentResolverError(t *testing.T) {
@@ -391,25 +271,13 @@ func TestContentResolverError(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{
 		ContainedIn: leadArticleUuid,
 		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
 	}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
-
-	mcr.On("ResolveContents", mock.Anything, mock.Anything).
-		Return([]map[string]interface{}{}, errors.New("Content resolver error"))
+	diffUuidsSet := set.New()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -418,68 +286,34 @@ func TestContentResolverError(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, whitelistedCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+	mcr.On("ResolveContents",
+		mock.MatchedBy(expectSet(t, diffUuidsSet)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return([]map[string]interface{}{}, errors.New("content resolver error"))
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, whitelistedCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
-	mcr.AssertCalled(t, "ResolveContents",
-		mock.MatchedBy(func(actualDiffUuids map[string]bool) bool {
-			diffUuids[leadArticleUuid] = false
-			assert.Equal(t, diffUuids, actualDiffUuids)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf, mcr)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestAllOk(t *testing.T) {
@@ -489,32 +323,19 @@ func TestAllOk(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{
 		ContainedIn: leadArticleUuid,
 		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
 	}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := map[string]bool{addedItemUuid: false, deletedItemUuid: true}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+	diffUuidsSet := set.New()
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 
 	contentArr := []map[string]interface{}{
 		{addedItemUuid: addedItemUuid},
 		{deletedItemUuid: deletedItemUuid},
 		{leadArticleUuid: leadArticleUuid},
 	}
-	mcr.On("ResolveContents", mock.Anything, mock.Anything).
-		Return(contentArr, nil)
-
-	mcp.On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -523,85 +344,37 @@ func TestAllOk(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, whitelistedCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+	mcr.On("ResolveContents",
+		mock.MatchedBy(expectSet(t, diffUuidsSet)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(contentArr, nil)
+	mcp.On("Send",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, uuidsAndDate.LastModified)),
+		mock.MatchedBy(expectMap(t, contentArr)))
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusOK, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, whitelistedCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
-	mcr.AssertCalled(t, "ResolveContents",
-		mock.MatchedBy(func(actualDiffUuids map[string]bool) bool {
-			diffUuids[leadArticleUuid] = false
-			assert.Equal(t, diffUuids, actualDiffUuids)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcp.AssertCalled(t, "Send",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualLastModified string) bool {
-			assert.Equal(t, uuidsAndDate.LastModified, actualLastModified)
-			return true
-		}),
-		mock.MatchedBy(func(actualContentArr []map[string]interface{}) bool {
-			assert.Equal(t, contentArr, actualContentArr)
-			return true
-		}),
-		mock.MatchedBy(func(actualIsDeletedMap map[string]bool) bool {
-			diffUuids[leadArticleUuid] = false
-			assert.Equal(t, diffUuids, actualIsDeletedMap)
-			return true
-		}))
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf, mcr, mcp)
 }
 
 func TestAllOk_NoLeadArticleRelation(t *testing.T) {
@@ -611,29 +384,16 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := map[string]bool{firstExistingItemUuid: false, secondExistingItemUuid: false, addedItemUuid: false}
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
-
+	diffUuidsSet := set.New()
+	diffUuidsSet.Add(firstExistingItemUuid)
+	diffUuidsSet.Add(addedItemUuid)
+	diffUuidsSet.Add(deletedItemUuid)
 	contentArr := []map[string]interface{}{
 		{firstExistingItemUuid: firstExistingItemUuid},
 		{secondExistingItemUuid: secondExistingItemUuid},
 		{addedItemUuid: addedItemUuid},
 	}
-	mcr.On("ResolveContents", mock.Anything, mock.Anything).
-		Return(contentArr, nil)
-
-	mcp.On("Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -642,83 +402,43 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, whitelistedCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+	mcr.On("ResolveContents",
+		mock.MatchedBy(func(actualDiffUuids []string) bool {
+			for _, uuid := range actualDiffUuids {
+				assert.True(t, diffUuidsSet.Exists(uuid))
+			}
+			assert.False(t, contains(actualDiffUuids, leadArticleUuid))
+			return true
+		}),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(contentArr, nil)
+	mcp.On("Send",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, uuidsAndDate.LastModified)),
+		mock.MatchedBy(expectMap(t, contentArr)))
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusOK, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, whitelistedCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
-	mcr.AssertCalled(t, "ResolveContents",
-		mock.MatchedBy(func(actualDiffUuids map[string]bool) bool {
-			assert.Equal(t, diffUuids, actualDiffUuids)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcp.AssertCalled(t, "Send",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualLastModified string) bool {
-			assert.Equal(t, uuidsAndDate.LastModified, actualLastModified)
-			return true
-		}),
-		mock.MatchedBy(func(actualContentArr []map[string]interface{}) bool {
-			assert.Equal(t, contentArr, actualContentArr)
-			return true
-		}),
-		mock.MatchedBy(func(actualIsDeletedMap map[string]bool) bool {
-			assert.Equal(t, diffUuids, actualIsDeletedMap)
-			return true
-		}))
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf, mcr, mcp)
 }
 
 func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
@@ -728,19 +448,8 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 		UuidArr:      []string{},
 		LastModified: lastModified,
 	}
-	mur.On("Resolve", mock.Anything, mock.Anything).
-		Return(uuidsAndDate, nil)
-
 	oldRelations := relations.CCRelations{}
-	mrr.On("Resolve", mock.Anything, mock.Anything).
-		Return(&oldRelations, nil)
-
-	diffUuids := make(map[string]bool)
-	mcd.On("Diff", mock.Anything, mock.Anything).
-		Return(diffUuids)
-
-	mf.On("Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+	diffUuidsSet := set.New()
 
 	server := startTestServer(u)
 	defer server.Close()
@@ -749,58 +458,31 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 	body := readTestFile(t, inputFile)
 	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
 
+	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
+	mrr.On("Resolve",
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, tid))).
+		Return(&oldRelations, nil)
+	mcd.On("SymmetricDifference",
+		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
+		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
+		Return(diffUuidsSet)
+	mf.On("Forward",
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, whitelistedCollection)),
+		mock.MatchedBy(expectByteSlice(t, body))).
+		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
+
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
 	verifyResponse(t, http.StatusOK, tid, resp)
 
-	mur.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualReqBody []byte) bool {
-			assert.Equal(t, body, actualReqBody)
-			return true
-		}))
-
-	mrr.AssertCalled(t, "Resolve",
-		mock.MatchedBy(func(actualContentCollectionUUID string) bool {
-			assert.Equal(t, collectionUuid, actualContentCollectionUUID)
-			return true
-		}),
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}))
-
-	mcd.AssertCalled(t, "Diff",
-		mock.MatchedBy(func(incomingCollectionUuids []string) bool {
-			assert.Equal(t, uuidsAndDate.UuidArr, incomingCollectionUuids)
-			return true
-		}),
-		mock.MatchedBy(func(oldCollectionUuids []string) bool {
-			assert.Equal(t, oldRelations.Contains, oldCollectionUuids)
-			return true
-		}))
-
-	mf.AssertCalled(t, "Forward",
-		mock.MatchedBy(func(actualTid string) bool {
-			assert.Equal(t, tid, actualTid)
-			return true
-		}),
-		mock.MatchedBy(func(actualUuid string) bool {
-			assert.Equal(t, collectionUuid, actualUuid)
-			return true
-		}),
-		mock.MatchedBy(func(actualCollectionType string) bool {
-			assert.Equal(t, whitelistedCollection, actualCollectionType)
-			return true
-		}),
-		mock.MatchedBy(func(actualBody []byte) bool {
-			assert.Equal(t, body, actualBody)
-			return true
-		}))
-
+	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
 	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
-	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestMarshallingErrorIs500(t *testing.T) {
@@ -857,7 +539,7 @@ type mockContentResolver struct {
 	mock.Mock
 }
 
-func (mcr *mockContentResolver) ResolveContents(diffUuids map[string]bool, tid string) ([]map[string]interface{}, error) {
+func (mcr *mockContentResolver) ResolveContents(diffUuids []string, tid string) ([]map[string]interface{}, error) {
 	args := mcr.Called(diffUuids, tid)
 	return args.Get(0).([]map[string]interface{}), args.Error(1)
 }
@@ -866,8 +548,8 @@ type mockContentProducer struct {
 	mock.Mock
 }
 
-func (mcp *mockContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}, isDeleted map[string]bool) {
-	mcp.Called(tid, lastModified, contents, isDeleted)
+func (mcp *mockContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}) {
+	mcp.Called(tid, lastModified, contents)
 	return
 }
 
@@ -884,7 +566,53 @@ type mockCollectionsDiffer struct {
 	mock.Mock
 }
 
-func (mcd *mockCollectionsDiffer) Diff(incomingCollectionUuids []string, oldCollectionUuids []string) (map[string]bool) {
+func (mcd *mockCollectionsDiffer) SymmetricDifference(incomingCollectionUuids []string, oldCollectionUuids []string) *set.Set {
 	args := mcd.Called(incomingCollectionUuids, oldCollectionUuids)
-	return args.Get(0).(map[string]bool)
+	return args.Get(0).(*set.Set)
+}
+
+func contains(values []string, valueToCheck string) bool {
+	for _, value := range values {
+		if valueToCheck == value {
+			return true
+		}
+	}
+	return false
+}
+
+func expectString(t *testing.T, expected string) func(string) bool {
+	return func(actual string) bool {
+		assert.Equal(t, expected, actual)
+		return true
+	}
+}
+
+func expectByteSlice(t *testing.T, expected []byte) func([]byte) bool {
+	return func(actual []byte) bool {
+		assert.Equal(t, expected, actual)
+		return true
+	}
+}
+
+func expectStringSlice(t *testing.T, expected []string) func([]string) bool {
+	return func(actual []string) bool {
+		assert.Equal(t, expected, actual)
+		return true
+	}
+}
+
+func expectSet(t *testing.T, expected *set.Set) func([]string) bool {
+	return func(actual []string) bool {
+		for _, uuid := range actual {
+			assert.True(t, expected.Exists(uuid))
+		}
+		return true
+	}
+}
+
+func expectMap(t *testing.T, expected []map[string]interface{}) func([]map[string]interface{}) bool {
+	return func(actual []map[string]interface{}) bool {
+		assert.Equal(t, expected, actual)
+		return true
+	}
 }

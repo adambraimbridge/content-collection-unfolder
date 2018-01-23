@@ -56,7 +56,7 @@ func mockDSAPIBytes(appStatus string, output []byte) {
 func Test_callContentResolverApp_1_Content(t *testing.T) {
 	mockDSAPI(t, statusWorking, "document-store-api-1-content-output.json")
 
-	diffUuids := map[string]bool{"ab43b1a6-1f47-11e7-b7d3-163f5a7f229c": false}
+	diffUuids := []string{"ab43b1a6-1f47-11e7-b7d3-163f5a7f229c"}
 	contents, err := contentResolver.ResolveContents(diffUuids, tid)
 	if err != nil {
 		assert.FailNow(t, "Failed retrieving contents.", err.Error())
@@ -68,7 +68,7 @@ func Test_callContentResolverApp_1_Content(t *testing.T) {
 func Test_callContentResolverApp_2_Content(t *testing.T) {
 	mockDSAPI(t, statusWorking, "document-store-api-2-content-output.json")
 
-	diffUuids := map[string]bool{"ab43b1a6-1f47-11e7-b7d3-163f5a7f229c": false, "70c800d8-b3e3-11e6-ba85-95d1533d9a62": false}
+	diffUuids := []string{"ab43b1a6-1f47-11e7-b7d3-163f5a7f229c", "70c800d8-b3e3-11e6-ba85-95d1533d9a62"}
 	contents, err := contentResolver.ResolveContents(diffUuids, tid)
 	if err != nil {
 		assert.FailNow(t, "Failed retrieving contents.", err.Error())
@@ -80,7 +80,7 @@ func Test_callContentResolverApp_2_Content(t *testing.T) {
 func Test_callContentResolverApp_Empty_Content(t *testing.T) {
 	mockDSAPIBytes(statusWorking, []byte("[]"))
 
-	var diffUuids map[string]bool
+	var diffUuids []string
 	contents, err := contentResolver.ResolveContents(diffUuids, tid)
 	if err != nil {
 		assert.FailNow(t, "Failed retrieving contents.", err.Error())
@@ -92,7 +92,7 @@ func Test_callContentResolverApp_Empty_Content(t *testing.T) {
 func Test_callContentResolverApp_NotWorking(t *testing.T) {
 	mockDSAPIBytes(statusNotWorking, []byte("[]"))
 
-	var diffUuids map[string]bool
+	var diffUuids []string
 	_, err := contentResolver.ResolveContents(diffUuids, tid)
 	if err == nil {
 		assert.FailNow(t, "Should have thrown error for failing to reach service.", err.Error())
