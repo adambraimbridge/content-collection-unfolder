@@ -130,6 +130,8 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Done unfolding. Preparing to send messages.", tid, uuid, collectionType)
+
 	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr)
 }
 
