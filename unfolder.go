@@ -65,7 +65,7 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Add("Content-Type", "application/json;charset=utf-8")
 
 	if err := uuidutils.ValidateUUID(uuid); err != nil {
-		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Invalid uuid in request path: %v", tid, uuid, collectionType, err)
+		log.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Invalid uuid in request path: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
@@ -73,21 +73,21 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Unable to extract request body: %v", tid, uuid, collectionType, err)
+		log.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Unable to extract request body: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusUnprocessableEntity, err)
 		return
 	}
 
 	uuidsAndDate, err := u.uuidsAndDateRes.Resolve(body)
 	if err != nil {
-		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while resolving UUIDs: %v", tid, uuid, collectionType, err)
+		log.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Error while resolving UUIDs: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusBadRequest, err)
 		return
 	}
 
 	oldCollectionRelations, err := u.relationsResolver.Resolve(uuid, tid)
 	if err != nil {
-		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while fetching old collection relations: %v", tid, uuid, collectionType, err)
+		log.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Error while fetching old collection relations: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
@@ -96,19 +96,19 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 
 	fwResp, err := u.forwarder.Forward(tid, uuid, collectionType, body)
 	if err != nil {
-		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error during forwarding: %v", tid, uuid, collectionType, err)
+		log.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Error during forwarding: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
 
 	if fwResp.Status != http.StatusOK {
-		log.Warnf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. Writer returned status [%v]", tid, uuid, collectionType, fwResp.Status)
+		log.Warnf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Skip unfolding. Writer returned status [%v]", tid, uuid, collectionType, fwResp.Status)
 		writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
 
 	if _, ok := u.whitelist[collectionType]; !ok {
-		log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. Collection type [%v] not in unfolding whitelist", tid, uuid, collectionType, collectionType)
+		log.Infof("Message with tid=%v contentCollectionUuid=%v collectionType=%v Skip unfolding. Collection type [%v] not in unfolding whitelist", tid, uuid, collectionType, collectionType)
 		writeResponse(writer, fwResp.Status, fwResp.ResponseBody)
 		return
 	}
@@ -118,17 +118,19 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	if diffUuidsSet.Len() == 0 {
-		log.Infof("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Skip unfolding. No uuids to resolve after diff was done.", tid, uuid, collectionType)
+		log.Infof("Message with tid=%v contentCollectionUuid=%v collectionType=%v Skip unfolding. No uuids to resolve after diff was done.", tid, uuid, collectionType)
 		writeResponse(writer, http.StatusOK, fwResp.ResponseBody)
 		return
 	}
 
 	resolvedContentArr, err := u.contentRes.ResolveContents(flattenToStringSlice(diffUuidsSet), tid)
 	if err != nil {
-		log.Errorf("Message with tid=%v, contentCollectionUuid=%v, collectionType=%v. Error while resolving contents: %v", tid, uuid, collectionType, err)
+		log.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Error while resolving contents: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
 		return
 	}
+
+	log.Infof("Message with tid=%v contentCollectionUuid=%v collectionType=%v Done unfolding. Preparing to send messages.", tid, uuid, collectionType)
 
 	u.producer.Send(tid, uuidsAndDate.LastModified, resolvedContentArr)
 }
