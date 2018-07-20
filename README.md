@@ -130,4 +130,6 @@ There are following checks are performed when the `/__health` is called:
 3. **document-store-api** connectivity check
 4. **kafka** connectivity check
 
-The `/__gtg` endpoint will return a `200` in case all above health checks are successful.  
+The `/__gtg` endpoint will return a `200` in case all above health checks are successful. 
+
+test
