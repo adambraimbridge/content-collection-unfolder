@@ -14,10 +14,14 @@ const (
 	uriBase             = "http://content-collection-unfolder.svc.ft.com/content/"
 	cmsContentPublished = "cms-content-published"
 	methodeSystemOrigin = "http://cmdb.ft.com/systems/methode-web-pub"
+	article				= "application/vnd.ft-upp-article"
+	dynamicContent		= "application/vnd.ft-upp-dynamic-content"
+	contentPackage		= "application/vnd.ft-upp-content-package"
+	audio 				= "application/vnd.ft-upp-content-package"
 )
 
 type ContentProducer interface {
-	Send(tid string, lastModified string, contents []map[string]interface{})
+	Send(tid string, lastModified string, contents []map[string]interface{}, contentTypeHeader map[string]string)
 }
 
 type defaultContentProducer struct {
@@ -30,21 +34,21 @@ func NewContentProducer(msgProducer producer.MessageProducer) ContentProducer {
 	}
 }
 
-func (p *defaultContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}) {
+func (p *defaultContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}, contentTypeHeader map[string]string) {
 	for _, content := range contents {
 		logEntry := log.WithField("tid", tid)
 		uuid, err := extractUuid(content)
 		if err != nil {
 			logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		} else {
-			p.sendSingleMessage(tid, uuid, content, lastModified)
+			p.sendSingleMessage(tid, uuid, content, lastModified, contentTypeHeader)
 		}
 	}
 }
 
-func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, content map[string]interface{}, lastModified string) {
+func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, content map[string]interface{}, lastModified string, contentTypeHeader map[string]string) {
 	logEntry := log.WithField("tid", tid).WithField("uuid", uuid)
-	msg, err := buildMessage(tid, uuid, lastModified, content)
+	msg, err := buildMessage(tid, uuid, lastModified, content, contentTypeHeader)
 	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
 		return
@@ -75,10 +79,11 @@ func extractUuid(content map[string]interface{}) (string, error) {
 	return uuid, nil
 }
 
-func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}) (*producer.Message, error) {
+func buildMessage(tid string, uuid string, lastModified string, content map[string]interface{}, contentTypeHeader map[string]string) (*producer.Message, error) {
 	body := publicationMessageBody{
 		ContentURI:   uriBase + uuid,
 		LastModified: lastModified,
+		ContentTypeHeader: contentTypeHeader,
 	}
 	body.Payload = content
 
@@ -94,6 +99,10 @@ func buildMessage(tid string, uuid string, lastModified string, content map[stri
 		"Message-Type":      cmsContentPublished,
 		"Origin-System-Id":  methodeSystemOrigin,
 		"Content-Type":      "application/json",
+		"Article":    		 article,
+		"DynamicContent":    dynamicContent,
+		"ContentPackage":    contentPackage,
+		"Audio":	 		 audio,
 	}
 
 	return &producer.Message{Headers: headers, Body: *bodyAsString}, nil
@@ -101,9 +110,10 @@ func buildMessage(tid string, uuid string, lastModified string, content map[stri
 }
 
 type publicationMessageBody struct {
-	ContentURI   string                 `json:"contentUri"`
-	LastModified string                 `json:"lastModified"`
-	Payload      map[string]interface{} `json:"payload"`
+	ContentURI         string                 `json:"contentUri"`
+	LastModified       string                 `json:"lastModified"`
+	Payload            map[string]interface{} `json:"payload"`
+	ContentTypeHeader  map[string]string	  `json:"contentTypeHeader"`
 }
 
 func (body publicationMessageBody) toJson() (*string, error) {
