@@ -8,7 +8,7 @@ import (
 )
 
 func TestDefaults(t *testing.T) {
-	app := cli.App("content-collection-unfolder", appDescription)
+	app := cli.App("content-collection-unfolder", serviceDescription)
 
 	sc := createServiceConfiguration(app)
 

@@ -3,12 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
 	"github.com/Financial-Times/content-collection-unfolder/differ"
 	fw "github.com/Financial-Times/content-collection-unfolder/forwarder"
 	prod "github.com/Financial-Times/content-collection-unfolder/producer"
@@ -19,6 +13,11 @@ import (
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
 )
 
 const (
@@ -257,7 +256,7 @@ func startRouting(
 
 	client := setupHttpClient()
 	hc := &healthConfig{
-		appDesc:                    appDescription,
+		appDesc:                    serviceDescription,
 		port:                       "8080",
 		appSystemCode:              "content-collection-unfolder",
 		appName:                    "Content Collection Unfolder",

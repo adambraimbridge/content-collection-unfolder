@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	health "github.com/Financial-Times/go-fthealth/v1_1"
+	logger "github.com/Financial-Times/go-logger"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
@@ -43,6 +43,6 @@ func (r routing) routProdEndpoints() {
 func (r routing) listenAndServe(port string) {
 	err := http.ListenAndServe(":"+port, r.router)
 	if err != nil {
-		log.Fatalf("Error during ListenAndServe: %v", err)
+		logger.Fatalf("Error during ListenAndServe: %v", err)
 	}
 }
