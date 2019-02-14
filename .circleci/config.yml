@@ -17,6 +17,7 @@ jobs:
             go get -u github.com/mattn/goveralls
             go get -u github.com/jstemmer/go-junit-report
             go get -u github.com/haya14busa/goverage
+            go get -u github.com/golang/dep/cmd/dep
       - run:
           name: Create Test Folders
           command: |
