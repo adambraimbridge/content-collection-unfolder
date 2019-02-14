@@ -23,7 +23,7 @@ jobs:
             mkdir -p $CIRCLE_TEST_REPORTS
             mkdir -p $CIRCLE_COVERAGE_REPORT
       - run:
-          name: Download vendored dependencies
+          name: Download Vendored Dependencies
           command: dep ensure -v -vendor-only
       - run:
           name: Go Build
@@ -36,6 +36,7 @@ jobs:
           command: goveralls -coverprofile=${CIRCLE_COVERAGE_REPORTS}/coverage.out -service=circle-ci -repotoken=${COVERALLS_TOKEN}
       - store_test_results:
           path: /tmp/test-results
+
   dockerfile:
     working_directory: /content-collection-unfolder
     docker:

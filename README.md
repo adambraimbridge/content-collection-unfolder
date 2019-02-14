@@ -20,6 +20,7 @@ Dependencies are:
       
 Download the source code, dependencies and test dependencies:
 
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         go get -u github.com/Financial-Times/content-collection-unfolder
         cd $GOPATH/src/github.com/Financial-Times/content-collection-unfolder
         dep ensure -vendor-only
