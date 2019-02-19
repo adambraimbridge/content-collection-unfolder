@@ -1,13 +1,14 @@
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/Financial-Times/content-collection-unfolder
     docker:
-      - image: golang:1.8.3
-        environment:
-          GOPATH: /go
-          CIRCLE_TEST_REPORTS: /tmp/test-results
-          CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
+      - image: golang:1.11
+    working_directory: /go/src/github.com/Financial-Times/content-collection-unfolder
+    environment:
+      GOPATH: /go
+      CIRCLE_TEST_REPORTS: /tmp/test-results
+      CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
+
     steps:
       - checkout
       - run:
@@ -15,29 +16,28 @@ jobs:
           command: |
             go get -u github.com/mattn/goveralls
             go get -u github.com/jstemmer/go-junit-report
-            go get -u github.com/kardianos/govendor
             go get -u github.com/haya14busa/goverage
+            go get -u github.com/golang/dep/cmd/dep
       - run:
-          name: Test Results
+          name: Create Test Folders
           command: |
-            mkdir -p ${CIRCLE_TEST_REPORTS}
-            mkdir -p ${CIRCLE_COVERAGE_REPORT}
+            mkdir -p $CIRCLE_TEST_REPORTS
+            mkdir -p $CIRCLE_COVERAGE_REPORT
       - run:
-          name: Govendor Sync
-          command: govendor sync -v
+          name: Download Vendored Dependencies
+          command: dep ensure -v -vendor-only
       - run:
           name: Go Build
-          command: go build -v
+          command: go build
       - run:
           name: Run Tests
-          command: |
-            govendor test -race -v +local | /go/bin/go-junit-report > ${CIRCLE_TEST_REPORTS}/main.xml
-            goverage -covermode=atomic -race -coverprofile=${CIRCLE_COVERAGE_REPORT}/coverage.out ./...
+          command: go test -race -cover -coverprofile=${CIRCLE_COVERAGE_REPORTS}/coverage.out ./... | go-junit-report > ${CIRCLE_TEST_REPORTS}/junit.xml
       - run:
           name: Upload Coverage
-          command: /go/bin/goveralls -coverprofile=${CIRCLE_COVERAGE_REPORT}/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+          command: goveralls -coverprofile=${CIRCLE_COVERAGE_REPORTS}/coverage.out -service=circle-ci -repotoken=${COVERALLS_TOKEN}
       - store_test_results:
           path: /tmp/test-results
+
   dockerfile:
     working_directory: /content-collection-unfolder
     docker:

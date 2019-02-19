@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	logger "github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/uuid-utils-go"
-	log "github.com/Sirupsen/logrus"
 	gouuid "github.com/satori/go.uuid"
 )
 
@@ -32,7 +32,7 @@ func NewContentProducer(msgProducer producer.MessageProducer) ContentProducer {
 
 func (p *defaultContentProducer) Send(tid string, lastModified string, contents []map[string]interface{}) {
 	for _, content := range contents {
-		logEntry := log.WithField("tid", tid)
+		logEntry := logger.WithField("tid", tid)
 		uuid, err := extractUuid(content)
 		if err != nil {
 			logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)
@@ -43,7 +43,7 @@ func (p *defaultContentProducer) Send(tid string, lastModified string, contents 
 }
 
 func (p *defaultContentProducer) sendSingleMessage(tid string, uuid string, content map[string]interface{}, lastModified string) {
-	logEntry := log.WithField("tid", tid).WithField("uuid", uuid)
+	logEntry := logger.WithField("tid", tid).WithField("uuid", uuid)
 	msg, err := buildMessage(tid, uuid, lastModified, content)
 	if err != nil {
 		logEntry.Warnf("Skip creation of kafka message. Reason: %v", err)

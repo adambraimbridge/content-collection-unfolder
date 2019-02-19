@@ -11,21 +11,24 @@ import (
 	prod "github.com/Financial-Times/content-collection-unfolder/producer"
 	"github.com/Financial-Times/content-collection-unfolder/relations"
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
+	logger "github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
-	log "github.com/Sirupsen/logrus"
 	"github.com/jawher/mow.cli"
 )
 
-const appDescription = "UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. If a 200 answer is received from the writer, it retrieves the elements in the collection from the document-store-api and places them in Kafka on the Post Publication topic so that notifications will be created for them."
+const (
+	serviceName        = "content-collection-unfolder"
+	serviceDescription = "UPP Service that forwards mapped content collections to the content-collection-rw-neo4j. If a 200 answer is received from the writer, it retrieves the elements in the collection from the document-store-api and places them in Kafka on the Post Publication topic so that notifications will be created for them."
+)
 
 func main() {
-	app := cli.App("content-collection-unfolder", appDescription)
+	app := cli.App(serviceName, serviceDescription)
 	sc := createServiceConfiguration(app)
 
-	log.SetLevel(log.InfoLevel)
+	logger.InitDefaultLogger(serviceName)
 
 	app.Action = func() {
-		log.Infof("[Startup] content-collection-unfolder is starting with service config %v", sc.toMap())
+		logger.Infof("[Startup] content-collection-unfolder is starting with service config %v", sc.toMap())
 
 		client := setupHttpClient()
 		producer := setupMessageProducer(sc, client)
@@ -40,7 +43,7 @@ func main() {
 			*sc.unfoldingWhitelist,
 		)
 		healthService := newHealthService(&healthConfig{
-			appDesc:                    appDescription,
+			appDesc:                    serviceDescription,
 			port:                       *sc.appPort,
 			appSystemCode:              *sc.appSystemCode,
 			appName:                    *sc.appName,
@@ -56,7 +59,7 @@ func main() {
 	}
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatalf("App could not start, error=[%v]", err)
+		logger.Fatalf("App could not start, error=[%v]", err)
 	}
 }
 

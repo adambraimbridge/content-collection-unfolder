@@ -257,7 +257,7 @@ func startRouting(
 
 	client := setupHttpClient()
 	hc := &healthConfig{
-		appDesc:                    appDescription,
+		appDesc:                    serviceDescription,
 		port:                       "8080",
 		appSystemCode:              "content-collection-unfolder",
 		appName:                    "Content Collection Unfolder",

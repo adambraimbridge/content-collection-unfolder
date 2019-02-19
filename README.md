@@ -20,18 +20,18 @@ Dependencies are:
       
 Download the source code, dependencies and test dependencies:
 
-        go get -u github.com/kardianos/govendor
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         go get -u github.com/Financial-Times/content-collection-unfolder
         cd $GOPATH/src/github.com/Financial-Times/content-collection-unfolder
-        govendor sync
+        dep ensure -vendor-only
         go build .
 
 ## Running locally
 
 1. Run the tests and install the binary:
 
-        govendor sync
-        govendor test -v -race
+        dep ensure -vendor-only
+        go test -v -race ./...
         go install
 
 2. Run the binary (using the `help` flag to see the available optional arguments):
