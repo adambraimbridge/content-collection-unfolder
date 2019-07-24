@@ -38,7 +38,7 @@ func main() {
 			relations.NewDefaultRelationsResolver(client, *sc.relationsResolverURI),
 			differ.NewDefaultCollectionsDiffer(),
 			fw.NewForwarder(client, *sc.writerURI),
-			res.NewContentResolver(client, *sc.contentResolverURI),
+			res.NewContentResolver(client, *sc.contentResolverURI, time.Duration(*sc.requestTimeout)*time.Second),
 			prod.NewContentProducer(producer),
 			*sc.unfoldingWhitelist,
 		)

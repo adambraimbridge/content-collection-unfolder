@@ -123,7 +123,9 @@ func (u *unfolder) handle(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resolvedContentArr, err := u.contentRes.ResolveContents(flattenToStringSlice(diffUuidsSet), tid)
+	requestTimeout := u.contentRes.GetRequestTimeout()
+	resolvedContentArr, err := u.contentRes.ResolveContentsNew(flattenToStringSlice(diffUuidsSet), tid, requestTimeout)
+
 	if err != nil {
 		logger.Errorf("Message with tid=%v contentCollectionUuid=%v collectionType=%v Error while resolving contents: %v", tid, uuid, collectionType, err)
 		writeError(writer, http.StatusInternalServerError, err)
