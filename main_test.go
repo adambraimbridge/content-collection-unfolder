@@ -29,6 +29,7 @@ const (
 	relationsResolverPath       = "/contentcollection/{uuid}/relations"
 	relationsResolverHealthPath = "/__health"
 	tid                         = "tid_test123456"
+	requestTimeoutInt           = 2e9
 )
 
 func TestAllHealthChecksBad(t *testing.T) {
@@ -273,7 +274,7 @@ func startRouting(
 			relations.NewDefaultRelationsResolver(client, relationsResolverServer.URL+relationsResolverPath),
 			differ.NewDefaultCollectionsDiffer(),
 			fw.NewForwarder(client, writerServer.URL+strings.Split(writerPath, "/{")[0]),
-			res.NewContentResolver(client, contentResolverServer.URL+contentResolverPath),
+			res.NewContentResolver(client, contentResolverServer.URL+contentResolverPath, requestTimeoutInt),
 			prod.NewContentProducer(messageProducer),
 			[]string{whitelistedCollection},
 		),

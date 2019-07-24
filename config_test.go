@@ -3,8 +3,13 @@ package main
 import (
 	"testing"
 
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	emptyString           = ""
+	requestTimeoutSeconds = 2
 )
 
 func TestDefaults(t *testing.T) {
@@ -27,8 +32,8 @@ func TestDefaults(t *testing.T) {
 		assert.NotEmpty(t, configMap["writeTopic"])
 		assert.NotEmpty(t, configMap["kafkaAddr"])
 		assert.NotEmpty(t, configMap["kafkaHostname"])
-		assert.Equal(t, "", configMap["kafkaAuth"])
-
+		assert.Equal(t, emptyString, configMap["kafkaAuth"])
+		assert.Equal(t, requestTimeoutSeconds, configMap["requestTimeout"])
 	}
 
 	app.Run([]string{"content-collection-unfolder"})
