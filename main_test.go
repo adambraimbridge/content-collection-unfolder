@@ -29,7 +29,7 @@ const (
 	relationsResolverPath       = "/contentcollection/{uuid}/relations"
 	relationsResolverHealthPath = "/__health"
 	tid                         = "tid_test123456"
-	requestTimeoutInt           = 2000000000
+	requestTimeoutInt           = 2e9
 )
 
 func TestAllHealthChecksBad(t *testing.T) {
