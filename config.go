@@ -19,6 +19,7 @@ type serviceConfig struct {
 	kafkaAddr                  *string
 	kafkaHostname              *string
 	kafkaAuth                  *string
+	requestTimeout             *int
 }
 
 func createServiceConfiguration(app *cli.Cli) *serviceConfig {
@@ -119,6 +120,13 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		EnvVar: "Q_AUTHORIZATION",
 	})
 
+	requestTimeout := app.Int(cli.IntOpt{
+		Name:   "request_timeout",
+		Value:  2,
+		Desc:   "timeout per request for taking contents from document store",
+		EnvVar: "REQUEST_TIMEOUT",
+	})
+
 	return &serviceConfig{
 		appSystemCode:              appSystemCode,
 		appName:                    appName,
@@ -134,6 +142,7 @@ func createServiceConfiguration(app *cli.Cli) *serviceConfig {
 		kafkaAddr:                  kafkaAddr,
 		kafkaHostname:              kafkaHostname,
 		kafkaAuth:                  kafkaAuth,
+		requestTimeout:             requestTimeout,
 	}
 }
 
@@ -153,5 +162,6 @@ func (sc *serviceConfig) toMap() map[string]interface{} {
 		"kafkaAddr":                  *sc.kafkaAddr,
 		"kafkaHostname":              *sc.kafkaHostname,
 		"kafkaAuth":                  *sc.kafkaAuth,
+		"requestTimeout":             *sc.requestTimeout,
 	}
 }
