@@ -11,3 +11,5 @@ env:
   RELATIONS_RESOLVER_URI: http://relations-api:8080/contentcollection/{uuid}/relations
   RELATIONS_RESOLVER_HEALTH_URI: http://relations-api:8080/__health
   Q_WRITE_TOPIC: PostPublicationEvents
+  REQUEST_TIMEOUT: '"2"'
+  

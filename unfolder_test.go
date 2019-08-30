@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Financial-Times/content-collection-unfolder/forwarder"
 	"github.com/Financial-Times/content-collection-unfolder/relations"
@@ -21,6 +22,7 @@ const (
 	ignoredCollection = "story-package"
 	invalidUuid       = "1234"
 	errorJson         = "{\"msg\":\"error\"}"
+	requestTimeout    = time.Second * 2
 )
 
 func TestInvalidUuid(t *testing.T) {
@@ -41,7 +43,7 @@ func TestInvalidUuid(t *testing.T) {
 	mrr.AssertNotCalled(t, "Resolve", mock.Anything, mock.Anything)
 	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -68,7 +70,7 @@ func TestUuidResolverError(t *testing.T) {
 	mrr.AssertNotCalled(t, "Resolve", mock.Anything, mock.Anything)
 	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -102,7 +104,7 @@ func TestRelationsResolverError(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, mur, mrr)
 	mcd.AssertNotCalled(t, "SymmetricDifference", mock.Anything, mock.Anything)
 	mf.AssertNotCalled(t, "Forward", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -151,7 +153,7 @@ func TestForwarderError(t *testing.T) {
 	verifyResponse(t, http.StatusInternalServerError, tid, resp)
 
 	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -205,7 +207,7 @@ func TestForwarderNon200Response(t *testing.T) {
 	assert.Equal(t, fwResp.ResponseBody, respBody)
 
 	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -260,7 +262,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 		}))
 
 	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -301,9 +303,11 @@ func TestContentResolverError(t *testing.T) {
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
-	mcr.On("ResolveContents",
+
+	mcr.On("ResolveContentsNew",
 		mock.MatchedBy(expectSet(t, diffUuidsSet)),
-		mock.MatchedBy(expectString(t, tid))).
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectTimeDuration(t, requestTimeout))).
 		Return([]map[string]interface{}{}, errors.New("content resolver error"))
 
 	resp, err := http.DefaultClient.Do(req)
@@ -359,9 +363,10 @@ func TestAllOk(t *testing.T) {
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
-	mcr.On("ResolveContents",
+	mcr.On("ResolveContentsNew",
 		mock.MatchedBy(expectSet(t, diffUuidsSet)),
-		mock.MatchedBy(expectString(t, tid))).
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectTimeDuration(t, requestTimeout))).
 		Return(contentArr, nil)
 	mcp.On("Send",
 		mock.MatchedBy(expectString(t, tid)),
@@ -417,7 +422,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
-	mcr.On("ResolveContents",
+	mcr.On("ResolveContentsNew",
 		mock.MatchedBy(func(actualDiffUuids []string) bool {
 			for _, uuid := range actualDiffUuids {
 				assert.True(t, diffUuidsSet.Exists(uuid))
@@ -425,7 +430,8 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 			assert.False(t, contains(actualDiffUuids, leadArticleUuid))
 			return true
 		}),
-		mock.MatchedBy(expectString(t, tid))).
+		mock.MatchedBy(expectString(t, tid)),
+		mock.MatchedBy(expectTimeDuration(t, requestTimeout))).
 		Return(contentArr, nil)
 	mcp.On("Send",
 		mock.MatchedBy(expectString(t, tid)),
@@ -481,7 +487,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 	verifyResponse(t, http.StatusOK, tid, resp)
 
 	mock.AssertExpectationsForObjects(t, mur, mrr, mcd, mf)
-	mcr.AssertNotCalled(t, "ResolveContents", mock.Anything, mock.Anything)
+	mcr.AssertNotCalled(t, "ResolveContentsNew", mock.Anything, mock.Anything, mock.Anything)
 	mcp.AssertNotCalled(t, "Send", mock.Anything, mock.Anything, mock.Anything)
 }
 
@@ -542,6 +548,15 @@ type mockContentResolver struct {
 func (mcr *mockContentResolver) ResolveContents(diffUuids []string, tid string) ([]map[string]interface{}, error) {
 	args := mcr.Called(diffUuids, tid)
 	return args.Get(0).([]map[string]interface{}), args.Error(1)
+}
+
+func (mcr *mockContentResolver) ResolveContentsNew(diffUuids []string, tid string, requestTimeout time.Duration) ([]map[string]interface{}, error) {
+	args := mcr.Called(diffUuids, tid, requestTimeout)
+	return args.Get(0).([]map[string]interface{}), args.Error(1)
+}
+
+func (mcr *mockContentResolver) GetRequestTimeout() time.Duration {
+	return requestTimeout
 }
 
 type mockContentProducer struct {
@@ -612,6 +627,13 @@ func expectSet(t *testing.T, expected *set.Set) func([]string) bool {
 
 func expectMap(t *testing.T, expected []map[string]interface{}) func([]map[string]interface{}) bool {
 	return func(actual []map[string]interface{}) bool {
+		assert.Equal(t, expected, actual)
+		return true
+	}
+}
+
+func expectTimeDuration(t *testing.T, expected time.Duration) func(time.Duration) bool {
+	return func(actual time.Duration) bool {
 		assert.Equal(t, expected, actual)
 		return true
 	}

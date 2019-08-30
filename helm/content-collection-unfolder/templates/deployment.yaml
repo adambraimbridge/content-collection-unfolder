@@ -54,6 +54,8 @@ spec:
             configMapKeyRef: 
               name: global-config 
               key: kafka.proxy.url.with.protocol
+        - name: REQUEST_TIMEOUT
+          value: {{ .Values.env.REQUEST_TIMEOUT }}
         ports: 
         - containerPort: 8080 
         livenessProbe: 
