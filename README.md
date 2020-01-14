@@ -4,7 +4,7 @@
 
 ## Introduction
 
-UPP Service that finds added/deleted collection members and lead article through relations-api.
+UPP Service that finds added/deleted collection members and lead articles through relations-api.
 Then it forwards mapped content collections to the content-collection-rw-neo4j to be written in Neo4j database.
 If a 200 answer is received from the writer, 
 it retrieves the added/deleted contents and the lead article in the collection from document-store-api 
@@ -20,21 +20,18 @@ Dependencies are:
       
 Download the source code, dependencies and test dependencies:
 
-        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-        go get -u github.com/Financial-Times/content-collection-unfolder
+        go get github.com/Financial-Times/content-collection-unfolder
         cd $GOPATH/src/github.com/Financial-Times/content-collection-unfolder
-        dep ensure -vendor-only
         go build .
 
 ## Running locally
 
 1. Run the tests and install the binary:
 
-        dep ensure -vendor-only
         go test -v -race ./...
         go install
 
-2. Run the binary (using the `help` flag to see the available optional arguments):
+2. Run the binary (usе the `help` flag to see the available optional arguments):
 
         $GOPATH/bin/content-collection-unfolder [--help]
 
