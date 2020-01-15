@@ -57,7 +57,7 @@ func (service *healthService) writerCheck() health.Check {
 	return health.Check{
 		BusinessImpact:   "Content relationships to packages will not be written / updated",
 		Name:             "Content collection Neo4j writer health check",
-		PanicGuide:       "https://dewey.ft.com/upp-content-collection-rw-neo4j.html",
+		PanicGuide:       "https://runbooks.ft.com/upp-content-collection-rw-neo4j",
 		Severity:         2,
 		TechnicalSummary: "Checks if the service responsible with writing content collections to Neo4j is healthy",
 		Checker:          service.writerChecker,
@@ -68,7 +68,7 @@ func (service *healthService) contentResolverCheck() health.Check {
 	return health.Check{
 		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
 		Name:             "Document store API health check",
-		PanicGuide:       "https://dewey.ft.com/document-store-api.html",
+		PanicGuide:       "https://runbooks.ft.com/document-store-api",
 		Severity:         2,
 		TechnicalSummary: "Checks if the service responsible with saving and retrieving content is healthy",
 		Checker:          service.contentResolverChecker,
@@ -79,7 +79,7 @@ func (service *healthService) relationsResolverCheck() health.Check {
 	return health.Check{
 		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
 		Name:             "Relations API health check",
-		PanicGuide:       "https://dewey.ft.com/upp-relations-api.html",
+		PanicGuide:       "https://runbooks.ft.com/upp-relations-api",
 		Severity:         2,
 		TechnicalSummary: "Checks if the service responsible with collection relations is healthy",
 		Checker:          service.relationsResolverChecker,
@@ -90,7 +90,7 @@ func (service *healthService) producerCheck() health.Check {
 	return health.Check{
 		BusinessImpact:   "No notifications will be created for the content in unfolded collections",
 		Name:             "Message producer health check",
-		PanicGuide:       "https://dewey.ft.com/kafka-proxy.html",
+		PanicGuide:       "https://runbooks.ft.com/kafka-proxy",
 		Severity:         2,
 		TechnicalSummary: "Checks if Kafka can be accessed through http proxy",
 		Checker:          service.producerChecker,
