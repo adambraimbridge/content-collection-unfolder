@@ -11,7 +11,7 @@ import (
 	"github.com/Financial-Times/content-collection-unfolder/forwarder"
 	"github.com/Financial-Times/content-collection-unfolder/relations"
 	"github.com/Financial-Times/content-collection-unfolder/resolver"
-	"github.com/Financial-Times/transactionid-utils-go"
+	transactionidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Workiva/go-datastructures/set"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -20,19 +20,19 @@ import (
 
 const (
 	ignoredCollection = "story-package"
-	invalidUuid       = "1234"
-	errorJson         = "{\"msg\":\"error\"}"
+	invalidUUID       = "1234"
+	errorJSON         = "{\"msg\":\"error\"}"
 	requestTimeout    = time.Second * 2
 )
 
-func TestInvalidUuid(t *testing.T) {
+func TestInvalidUUID(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	server := startTestServer(u)
 	defer server.Close()
 
 	tid := transactionidutils.NewTransactionID()
-	req := buildRequest(t, server.URL, whitelistedCollection, invalidUuid, readTestFile(t, inputFile), tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, invalidUUID, readTestFile(t, inputFile), tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestUuidResolverError(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).
 		Return(resolver.UuidsAndDate{}, errors.New("uuid resolver error"))
@@ -78,7 +78,7 @@ func TestRelationsResolverError(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 
@@ -87,11 +87,11 @@ func TestRelationsResolverError(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&relations.CCRelations{}, errors.New("relations resolver error"))
 
@@ -112,27 +112,27 @@ func TestForwarderError(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 	oldRelations := relations.CCRelations{
-		ContainedIn: leadArticleUuid,
-		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+		ContainedIn: leadArticleUUID,
+		Contains:    []string{firstExistingItemUUID, secondExistingItemUUUID, deletedItemUUID},
 	}
 	diffUuidsSet := set.New()
-	diffUuidsSet.Add(addedItemUuid)
-	diffUuidsSet.Add(deletedItemUuid)
+	diffUuidsSet.Add(addedItemUUUID)
+	diffUuidsSet.Add(deletedItemUUID)
 
 	server := startTestServer(u)
 	defer server.Close()
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
@@ -141,7 +141,7 @@ func TestForwarderError(t *testing.T) {
 		Return(diffUuidsSet)
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{}, errors.New("forwarder error"))
@@ -161,37 +161,37 @@ func TestForwarderNon200Response(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 	oldRelations := relations.CCRelations{
-		ContainedIn: leadArticleUuid,
-		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+		ContainedIn: leadArticleUUID,
+		Contains:    []string{firstExistingItemUUID, secondExistingItemUUUID, deletedItemUUID},
 	}
 	diffUuidsSet := set.New()
-	diffUuidsSet.Add(addedItemUuid)
-	diffUuidsSet.Add(deletedItemUuid)
+	diffUuidsSet.Add(addedItemUUUID)
+	diffUuidsSet.Add(deletedItemUUID)
 
 	server := startTestServer(u)
 	defer server.Close()
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
 		mock.MatchedBy(expectStringSlice(t, uuidsAndDate.UuidArr)),
 		mock.MatchedBy(expectStringSlice(t, oldRelations.Contains))).
 		Return(diffUuidsSet)
-	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJson)}
+	fwResp := forwarder.ForwarderResponse{Status: http.StatusUnprocessableEntity, ResponseBody: []byte(errorJSON)}
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(fwResp, nil)
@@ -215,27 +215,27 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 	oldRelations := relations.CCRelations{
-		ContainedIn: leadArticleUuid,
-		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+		ContainedIn: leadArticleUUID,
+		Contains:    []string{firstExistingItemUUID, secondExistingItemUUUID, deletedItemUUID},
 	}
 	diffUuidsSet := set.New()
-	diffUuidsSet.Add(addedItemUuid)
-	diffUuidsSet.Add(deletedItemUuid)
+	diffUuidsSet.Add(addedItemUUUID)
+	diffUuidsSet.Add(deletedItemUUID)
 
 	server := startTestServer(u)
 	defer server.Close()
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, ignoredCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, ignoredCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
@@ -244,7 +244,7 @@ func TestNotWhitelistedCollectionType(t *testing.T) {
 		Return(diffUuidsSet)
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, ignoredCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -270,27 +270,27 @@ func TestContentResolverError(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 	oldRelations := relations.CCRelations{
-		ContainedIn: leadArticleUuid,
-		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+		ContainedIn: leadArticleUUID,
+		Contains:    []string{firstExistingItemUUID, secondExistingItemUUUID, deletedItemUUID},
 	}
 	diffUuidsSet := set.New()
-	diffUuidsSet.Add(addedItemUuid)
-	diffUuidsSet.Add(deletedItemUuid)
+	diffUuidsSet.Add(addedItemUUUID)
+	diffUuidsSet.Add(deletedItemUUID)
 
 	server := startTestServer(u)
 	defer server.Close()
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
@@ -299,7 +299,7 @@ func TestContentResolverError(t *testing.T) {
 		Return(diffUuidsSet)
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -324,21 +324,21 @@ func TestAllOk(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 	oldRelations := relations.CCRelations{
-		ContainedIn: leadArticleUuid,
-		Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+		ContainedIn: leadArticleUUID,
+		Contains:    []string{firstExistingItemUUID, secondExistingItemUUUID, deletedItemUUID},
 	}
 	diffUuidsSet := set.New()
-	diffUuidsSet.Add(addedItemUuid)
-	diffUuidsSet.Add(deletedItemUuid)
+	diffUuidsSet.Add(addedItemUUUID)
+	diffUuidsSet.Add(deletedItemUUID)
 
 	contentArr := []map[string]interface{}{
-		{addedItemUuid: addedItemUuid},
-		{deletedItemUuid: deletedItemUuid},
-		{leadArticleUuid: leadArticleUuid},
+		{addedItemUUUID: addedItemUUUID},
+		{deletedItemUUID: deletedItemUUID},
+		{leadArticleUUID: leadArticleUUID},
 	}
 
 	server := startTestServer(u)
@@ -346,11 +346,11 @@ func TestAllOk(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
@@ -359,7 +359,7 @@ func TestAllOk(t *testing.T) {
 		Return(diffUuidsSet)
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -386,18 +386,18 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 	mur, mrr, mcd, mf, mcr, mcp, u := newUnfolderWithMocks()
 
 	uuidsAndDate := resolver.UuidsAndDate{
-		UuidArr:      []string{firstExistingItemUuid, secondExistingItemUuid, addedItemUuid},
+		UuidArr:      []string{firstExistingItemUUID, secondExistingItemUUUID, addedItemUUUID},
 		LastModified: lastModified,
 	}
 	oldRelations := relations.CCRelations{}
 	diffUuidsSet := set.New()
-	diffUuidsSet.Add(firstExistingItemUuid)
-	diffUuidsSet.Add(addedItemUuid)
-	diffUuidsSet.Add(deletedItemUuid)
+	diffUuidsSet.Add(firstExistingItemUUID)
+	diffUuidsSet.Add(addedItemUUUID)
+	diffUuidsSet.Add(deletedItemUUID)
 	contentArr := []map[string]interface{}{
-		{firstExistingItemUuid: firstExistingItemUuid},
-		{secondExistingItemUuid: secondExistingItemUuid},
-		{addedItemUuid: addedItemUuid},
+		{firstExistingItemUUID: firstExistingItemUUID},
+		{secondExistingItemUUUID: secondExistingItemUUUID},
+		{addedItemUUUID: addedItemUUUID},
 	}
 
 	server := startTestServer(u)
@@ -405,11 +405,11 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
@@ -418,7 +418,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 		Return(diffUuidsSet)
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -427,7 +427,7 @@ func TestAllOk_NoLeadArticleRelation(t *testing.T) {
 			for _, uuid := range actualDiffUuids {
 				assert.True(t, diffUuidsSet.Exists(uuid))
 			}
-			assert.False(t, contains(actualDiffUuids, leadArticleUuid))
+			assert.False(t, contains(actualDiffUuids, leadArticleUUID))
 			return true
 		}),
 		mock.MatchedBy(expectString(t, tid)),
@@ -462,11 +462,11 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 
 	tid := transactionidutils.NewTransactionID()
 	body := readTestFile(t, inputFile)
-	req := buildRequest(t, server.URL, whitelistedCollection, collectionUuid, body, tid)
+	req := buildRequest(t, server.URL, whitelistedCollection, collectionUUID, body, tid)
 
 	mur.On("Resolve", mock.MatchedBy(expectByteSlice(t, body))).Return(uuidsAndDate, nil)
 	mrr.On("Resolve",
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, tid))).
 		Return(&oldRelations, nil)
 	mcd.On("SymmetricDifference",
@@ -475,7 +475,7 @@ func TestAllOk_NewEmptyCollection_NoRelations(t *testing.T) {
 		Return(diffUuidsSet)
 	mf.On("Forward",
 		mock.MatchedBy(expectString(t, tid)),
-		mock.MatchedBy(expectString(t, collectionUuid)),
+		mock.MatchedBy(expectString(t, collectionUUID)),
 		mock.MatchedBy(expectString(t, whitelistedCollection)),
 		mock.MatchedBy(expectByteSlice(t, body))).
 		Return(forwarder.ForwarderResponse{http.StatusOK, []byte{}}, nil)
@@ -499,8 +499,8 @@ func TestMarshallingErrorIs500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 }
 
-func newUnfolderWithMocks() (*mockUuidResolver, *mockRelationsResolver, *mockCollectionsDiffer, *mockForwarder, *mockContentResolver, *mockContentProducer, *unfolder) {
-	mur := new(mockUuidResolver)
+func newUnfolderWithMocks() (*mockUUIDResolver, *mockRelationsResolver, *mockCollectionsDiffer, *mockForwarder, *mockContentResolver, *mockContentProducer, *unfolder) {
+	mur := new(mockUUIDResolver)
 	mrr := new(mockRelationsResolver)
 	mcd := new(mockCollectionsDiffer)
 	mf := new(mockForwarder)
@@ -532,11 +532,11 @@ func (mf *mockForwarder) Forward(tid string, uuid string, collectionType string,
 	return args.Get(0).(forwarder.ForwarderResponse), args.Error(1)
 }
 
-type mockUuidResolver struct {
+type mockUUIDResolver struct {
 	mock.Mock
 }
 
-func (mur *mockUuidResolver) Resolve(reqData []byte) (resolver.UuidsAndDate, error) {
+func (mur *mockUUIDResolver) Resolve(reqData []byte) (resolver.UuidsAndDate, error) {
 	args := mur.Called(reqData)
 	return args.Get(0).(resolver.UuidsAndDate), args.Error(1)
 }

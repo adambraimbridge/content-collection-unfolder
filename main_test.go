@@ -16,7 +16,7 @@ import (
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
-	"github.com/Financial-Times/transactionid-utils-go"
+	transactionidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -129,7 +129,7 @@ func TestEndToEndFlow(t *testing.T) {
 	unfolderServer := httptest.NewServer(routing.router)
 	defer unfolderServer.Close()
 
-	req := buildRequest(t, unfolderServer.URL, whitelistedCollection, collectionUuid, readTestFile(t, inputFile), tid)
+	req := buildRequest(t, unfolderServer.URL, whitelistedCollection, collectionUUID, readTestFile(t, inputFile), tid)
 
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -139,9 +139,9 @@ func TestEndToEndFlow(t *testing.T) {
 
 	assert.Equal(t, 3, len(messageProducer.received))
 	allMessages := strings.Join(messageProducer.received, "")
-	assert.Equal(t, 2, strings.Count(allMessages, addedItemUuid))
-	assert.Equal(t, 2, strings.Count(allMessages, deletedItemUuid))
-	assert.Equal(t, 2, strings.Count(allMessages, leadArticleUuid))
+	assert.Equal(t, 2, strings.Count(allMessages, addedItemUUUID))
+	assert.Equal(t, 2, strings.Count(allMessages, deletedItemUUID))
+	assert.Equal(t, 2, strings.Count(allMessages, leadArticleUUID))
 }
 
 func notFoundHandler(w http.ResponseWriter, _ *http.Request) {
@@ -178,9 +178,9 @@ func startContentResolverServer(t *testing.T, healthHandler func(w http.Response
 		uuidArr := r.URL.Query()["uuid"]
 
 		assert.Equal(t, tid, transactionidutils.GetTransactionIDFromRequest(r))
-		assert.Contains(t, uuidArr, leadArticleUuid)
-		assert.Contains(t, uuidArr, addedItemUuid)
-		assert.Contains(t, uuidArr, deletedItemUuid)
+		assert.Contains(t, uuidArr, leadArticleUUID)
+		assert.Contains(t, uuidArr, addedItemUUUID)
+		assert.Contains(t, uuidArr, deletedItemUUID)
 
 		contentArr := []map[string]string{}
 		for _, uuid := range uuidArr {
@@ -206,11 +206,11 @@ func startRelationsResolverServer(t *testing.T, healthHandler func(w http.Respon
 
 	router.HandleFunc(relationsResolverPath, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, tid, transactionidutils.GetTransactionIDFromRequest(r))
-		assert.True(t, strings.Contains(r.URL.Path, collectionUuid))
+		assert.True(t, strings.Contains(r.URL.Path, collectionUUID))
 
 		ccRelations := &relations.CCRelations{
-			ContainedIn: leadArticleUuid,
-			Contains:    []string{firstExistingItemUuid, secondExistingItemUuid, deletedItemUuid},
+			ContainedIn: leadArticleUUID,
+			Contains:    []string{firstExistingItemUUID, secondExistingItemUUUID, deletedItemUUID},
 		}
 
 		body, err := json.Marshal(ccRelations)
@@ -245,9 +245,8 @@ func (tp *testProducer) SendMessage(key string, msg producer.Message) error {
 func (tp *testProducer) ConnectivityCheck() (string, error) {
 	if tp.healthy {
 		return "Ok", nil
-	} else {
-		return "", errors.New("Not healthy")
 	}
+	return "", errors.New("not healthy")
 }
 
 func startRouting(
@@ -256,7 +255,7 @@ func startRouting(
 	relationsResolverServer *httptest.Server,
 	messageProducer *testProducer) *routing {
 
-	client := setupHttpClient()
+	client := setupHTTPClient()
 	hc := &healthConfig{
 		appDesc:                    serviceDescription,
 		port:                       "8080",

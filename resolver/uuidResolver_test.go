@@ -70,7 +70,7 @@ func TestInvalidLastModified(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestInvalidUuid(t *testing.T) {
+func TestInvalidUUID(t *testing.T) {
 	ccBytes := readTestFile(t, "content-collection-invalid-uuid.json")
 
 	r := NewUuidResolver()

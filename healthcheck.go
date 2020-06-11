@@ -113,8 +113,8 @@ func (service *healthService) producerChecker() (string, error) {
 	return service.config.producer.ConnectivityCheck()
 }
 
-func (service *healthService) httpAvailabilityChecker(healthUri string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, healthUri, nil)
+func (service *healthService) httpAvailabilityChecker(healthURI string) (string, error) {
+	req, err := http.NewRequest(http.MethodGet, healthURI, nil)
 	if err != nil {
 		msg := fmt.Sprintf("Error while creating http health check request: %v", err)
 		return msg, errors.New(msg)

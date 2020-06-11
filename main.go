@@ -13,7 +13,7 @@ import (
 	res "github.com/Financial-Times/content-collection-unfolder/resolver"
 	logger "github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 )
 
 const (
@@ -30,7 +30,7 @@ func main() {
 	app.Action = func() {
 		logger.Infof("[Startup] content-collection-unfolder is starting with service config %v", sc.toMap())
 
-		client := setupHttpClient()
+		client := setupHTTPClient()
 		producer := setupMessageProducer(sc, client)
 
 		unfolder := newUnfolder(
@@ -63,7 +63,7 @@ func main() {
 	}
 }
 
-func setupHttpClient() *http.Client {
+func setupHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
